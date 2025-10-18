@@ -79,19 +79,13 @@ GO
 -- NIVEL 2: Tablas que referencian NIVEL 1
 -- =============================================
 
-CREATE TABLE LOS_LINDOS.Estado_de_inscripción (
-   codigo_estado_inscripcion BIGINT PRIMARY KEY IDENTITY(1,1),
-   codigo_estado BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.Estado(codigo_estado),
-   fecha_de_respuesta DATETIME2
-);
-GO
 
 CREATE TABLE LOS_LINDOS.Sede (
   codigo BIGINT PRIMARY KEY IDENTITY(1,1),
   nombre NVARCHAR(255) NOT NULL,
   codigo_localidad BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Localidad(codigo),
   codigo_direccion BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Direccion(codigo),
-  codigo_provincia BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Provinci(codigo)
+  codigo_provincia BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Provincia(codigo)
 );
 GO
 
@@ -121,10 +115,6 @@ CREATE TABLE LOS_LINDOS.Profesor (
 );
 GO
 
--- =============================================
--- NIVEL 3: Tablas que referencian NIVEL 2
--- =============================================
-
 CREATE TABLE LOS_LINDOS.Curso (
    codigo BIGINT PRIMARY KEY,
    codigo_sede BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Sede(codigo),
@@ -140,6 +130,28 @@ CREATE TABLE LOS_LINDOS.Curso (
 );
 GO
 
+CREATE TABLE LOS_LINDOS.Inscripcion_Curso(
+    numero BIGINT PRIMARY KEY,
+    legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
+    curso_codigo BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
+    fecha DATETIME2
+);
+GO
+
+CREATE TABLE LOS_LINDOS.Estado_de_Inscripción (
+   codigo_estado_inscripcion BIGINT PRIMARY KEY IDENTITY(1,1),
+   codigo_estado BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.Estado(codigo_estado),
+   numero_inscripcion_curso BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.Inscripcion_Curso(numero),
+   fecha_de_respuesta DATETIME2
+);
+GO
+
+
+-- =============================================
+-- NIVEL 3: Tablas que referencian NIVEL 2
+-- =============================================
+
+
 CREATE TABLE LOS_LINDOS.Factura (
     numero BIGINT PRIMARY KEY,
     fecha_emision DATETIME2,
@@ -153,15 +165,7 @@ GO
 -- NIVEL 4: Tablas que referencian NIVEL 3
 -- =============================================
 
-CREATE TABLE LOS_LINDOS.Inscripcion_Curso(
-    numero BIGINT PRIMARY KEY,
-    legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
-    curso_codigo BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
-    codigo_estado_inscripcion BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Estado_de_inscripción(codigo_estado_inscripcion),
-    fecha DATETIME2,
-    fecha_respuesta DATETIME2
-);
-GO
+
 
 CREATE TABLE LOS_LINDOS.Curso_x_Alumno (
      legajo_alumno BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
@@ -293,24 +297,24 @@ CREATE TABLE LOS_LINDOS.Evaluacion_de_final (
 );
 GO
 
-select * from gd_esquema.Maestra;
+-- --------------------------------------------------------------------------------------------------------------
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Estados
 AS
-    BEGIN
-    INSERT INTO LOS_LINDOS.Estado_de_Inscripcion(estado)
+BEGIN
+    INSERT INTO LOS_LINDOS.Estado(nombre_tipo_estado)
     SELECT DISTINCT Inscripcion_Estado
     FROM gd_esquema.Maestra
     WHERE Inscripcion_Estado IS NOT NULL
-    END
-    GO
+END
+GO
 
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Dia_Semana
 AS
 BEGIN
     INSERT INTO LOS_LINDOS.Dia_Semana (nombre)
-    SELECT distinct Curso_Dia FROM gd_esquema.Maestra
+    SELECT DISTINCT Curso_Dia FROM gd_esquema.Maestra
     WHERE Curso_Dia IS NOT NULL;
 END
 
@@ -319,33 +323,35 @@ GO
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Categorias
 AS
-BEGIN
-    INSERT INTO LOS_LINDOS.Categoria (nombre)
-    SELECT distinct Curso_Categoria FROM gd_esquema.Maestra
-    WHERE Curso_Categoria IS NOT NULL;
-END
-
+    BEGIN
+        INSERT INTO LOS_LINDOS.Categoria (nombre)
+        SELECT DISTINCT 
+            Curso_Categoria 
+            FROM gd_esquema.Maestra
+        WHERE Curso_Categoria IS NOT NULL;
+    END
 GO
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Turnos AS
 BEGIN
-INSERT INTO Turnos (nombre)
-SELECT
-    DISTINCT Curso_Turno
-FROM gd_esquema.Maestra
-WHERE Curso_Turno IS NOT NULL;
+INSERT INTO Turno (nombre)
+SELECT DISTINCT Curso_Turno
+    FROM gd_esquema.Maestra
+    WHERE Curso_Turno IS NOT NULL;
 END
 GO
-
 
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Instituciones
         AS
 BEGIN
-INSERT INTO LOS_LINDOS.Institucion
-SELECT Institucion_Nombre, Institucion_RazonSocial,DISTINCT Institucion_Cuit
-FROM gd_esquema.Maestra
-WHERE Institucion_Cuit IS NOT NULL
+    INSERT INTO LOS_LINDOS.Institucion (cuit,nombre,razon)
+    SELECT DISTINCT 
+        Institucion_Cuit, 
+        Institucion_Nombre, 
+        Institucion_RazonSocial
+    FROM gd_esquema.Maestra
+    WHERE Institucion_Cuit IS NOT NULL 
 END
 GO
 
@@ -374,7 +380,7 @@ SELECT DISTINCT Sede_Localidad FROM gd_esquema.Maestra WHERE Alumno_Provincia IS
 END
 GO
 
--- localidades
+-- direcciones
 CREATE PROCEDURE LOS_LINDOS.Migrar_Direcciones AS
 BEGIN
 INSERT INTO Direccion (nombre)
@@ -389,9 +395,11 @@ GO
 --- MEDIOS DE PAGO
 CREATE PROCEDURE LOS_LINDOS.Migrar_Medio_Pago AS
 BEGIN
-INSERT INTO Medio_Pago (nombre)
-SELECT DISTINCT Pago_MedioPago FROM gd_esquema.Maestra
+INSERT INTO Medio_Pago (medio_pago)
+    SELECT DISTINCT Pago_MedioPago FROM gd_esquema.Maestra
     WHERE Pago_MedioPago IS NOT NULL
+
+END
 GO
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Preguntas AS
@@ -407,23 +415,12 @@ SELECT DISTINCT Encuesta_Pregunta4 FROM gd_esquema.Maestra WHERE Encuesta_Pregun
 END
 GO
 
--- Estado de Inscripcion
-CREATE PROCEDURE LOS_LINDOS.Migrar_Estado_de_Inscripcion AS
-BEGIN
-INSERT INTO Estado_de_Inscripcion(codigo_estado, fecha_respuesta)
-SELECT estado.codigo_estado,m.Inscripcion_FechaRespuesta
-    FROM gd_esquema.Maestra m
-JOIN LOS_LINDOS.Estado estado ON estado.nombre_tipo_estado=m.inscripcion_Estado
-WHERE m.inscripcion_estado IS NOT NULL
-END
-GO
-
 
 --sedes
 CREATE PROCEDURE LOS_LINDOS.Migrar_Sedes AS
 BEGIN
 INSERT INTO Sede (nombre,codigo_provincia, codigo_direccion, codigo_localidad)
-    SELECT
+    SELECT DISTINCT 
         m.Sede_Nombre,
         p.codigo,
         d.codigo,
@@ -439,27 +436,28 @@ GO
 -- alumnos
 CREATE PROCEDURE LOS_LINDOS.Migrar_Alumnos AS
 BEGIN
-INSERT INTO Alumno (nombre,apellido, dni, codigo_direccion, codigo_localidad, telefono, codigo_provincia)
-SELECT
+INSERT INTO Alumno (legajo,nombre,apellido, dni,telefono, codigo_direccion, codigo_localidad,  codigo_provincia)
+SELECT DISTINCT
+    m.Alumno_Legajo,
     m.Alumno_Nombre,
     m.Alumno_Apellido,
     m.Alumno_Dni,
+    m.Alumno_Telefono,
     d.codigo,
     l.codigo,
-    m.telefono,
     p.codigo
 FROM gd_esquema.Maestra m
          JOIN LOS_LINDOS.Provincia p ON p.nombre = m.Alumno_Provincia AND m.Alumno_Provincia IS NOT NULL
          JOIN Direccion d ON d.nombre = m.Alumno_Direccion AND m.Alumno_Direccion IS NOT NULL
          JOIN Localidad l ON l.nombre = m.Alumno_Localidad AND m.Alumno_Localidad IS NOT NULL
-WHERE m.Alumno_Nombre IS NOT NULL;
+WHERE m.Alumno_Legajo IS NOT NULL;
 END
 GO
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Profesores AS
 BEGIN
 INSERT INTO Profesor (nombre, apellido, dni, mail, telefono, codigo_direccion, codigo_localidad, codigo_provincia, fecha_nacimiento)
-SELECT
+SELECT DISTINCT
     m.Profesor_nombre,
     m.Profesor_Apellido,
     m.Profesor_Dni,
@@ -474,12 +472,70 @@ JOIN Direccion d ON d.nombre=m.Profesor_Direccion AND m.Profesor_Direccion IS NO
 JOIN Localidad l ON l.nombre=m.Profesor_Localidad AND m.Profesor_Localidad IS NOT NULL
 JOIN Provincia p ON p.nombre=m.Profesor_Provincia AND m.Profesor_Provincia IS NOT NULL
 WHERE
-    m.Profesor_nombre IS NOT NULL AND
-    m.Profesor_Apellido IS NOT NULL AND
-    m.Profesor_Dni IS NOT NULL AND
-    m.Profesor_Mail IS NOT NULL AND
+    m.Profesor_nombre IS NOT NULL
+    AND
+    m.Profesor_Apellido IS NOT NULL
+    AND
+    m.Profesor_Dni IS NOT NULL
+    AND
+    m.Profesor_Mail IS NOT NULL
+    AND
     m.Profesor_Telefono IS NOT NULL
+    AND
     m.Profesor_FechaNacimiento IS NOT NULL;
+END
+GO
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Cursos AS
+BEGIN
+    INSERT INTO Curso (codigo ,codigo_sede, codigo_profesor, nombre, descripcion, codigo_categoria, fecha_inicio, fecha_fin, duracion_meses, codigo_turno, precio_mensual)
+    SELECT DISTINCT 
+        m.Curso_Codigo, 
+        s.codigo, p.codigo, 
+        m.Curso_Nombre, 
+        m.Curso_Descripcion, 
+        c.codigo,
+        m.Curso_FechaInicio,
+        m.Curso_FechaFin, 
+        m.Curso_DuracionMeses, 
+        t.codigo, 
+        m.Curso_PrecioMensual
+    FROM gd_esquema.Maestra m
+             JOIN LOS_LINDOS.Sede s on s.nombre = m.Sede_nombre -- IMPORTANTISIMO: NO HAY COLUMNA "CURSO_SEDE", ENTONCES TENGO QUE ASIGNARLE UNA SEDE A UN CURSO SI LA FILA DE ESE "CURSO_CODIGO" TIENE LOS DATOS DE SEDE QUE COINCIDAN CON UNA FILA DE LA TABLA DE SEDES, alcanza con matchear los datos DESNORMALIZADOS de la sede ya que se asume que las demás tablas tienen datos consistentes
+             JOIN LOS_LINDOS.Profesor p on p.nombre = m.Profesor_nombre and p.apellido = m.Profesor_apellido and p.telefono = m.Profesor_telefono and p.dni = m.Profesor_Dni and p.mail = m.Profesor_Mail and p.fecha_nacimiento = m.Profesor_FechaNacimiento -- IMPORTANTISIMO: NO HAY COLUMNA "CURSO_PROFESOR", ENTONCES TENGO QUE ASIGNARLE UN PROFESOR A UN CURSO SI LA FILA DE ESE "CURSO_CODIGO" TIENE LOS DATOS DE ESE PROFESOR QUE COINCIDAN CON UNA FILA DE LA TABLA DE PROFESORES
+             JOIN LOS_LINDOS.Categoria c on c.nombre = m.Curso_Categoria
+             JOIN LOS_LINDOS.Turno t on t.nombre = m.Curso_Turno
+    WHERE 
+        m.Curso_Codigo is not null  -- Si Curso_Codigo NO ES NULL => Tampoco lo son todas las filas que se usan para obtener informacion: Sede_nombre, Profesor_nombre, Profesor_apellido, Profesor_telefono, Profesor_Dni, Profesor_Mail, Profesor_FechaNacimiento, Curso_Categoria, Curso_Turno
+    /*
+    Capaz lo que nos dicen es que, si no hay una columna expícita que establezca la sede de un curso o el profesor de un curso, no intentemos obtener los valores de la tabla, si no que lo dejemos vacío.
+    */
+
+END
+GO
+
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Inscripciones_Cursos AS
+BEGIN
+    INSERT INTO Inscripcion_Curso (numero, legajo_alumno, curso_codigo,fecha)
+    SELECT
+        distinct m.Inscripcion_Numero,
+        a.legajo,
+        c.codigo,
+        m.Inscripcion_Fecha
+    FROM gd_esquema.Maestra m JOIN Alumno a on a.nombre = m.Alumno_Nombre and a.apellido = m.Alumno_Apellido and a.dni=m.Alumno_Dni and a.legajo = m.Alumno_Legajo and a.telefono = m.Alumno_Telefono 
+                              JOIN Curso c on c.codigo = m.Curso_Codigo and c.descripcion = m.Curso_Descripcion and c.duracion_meses = m.Curso_DuracionMeses and c.fecha_fin = m.Curso_FechaFin and c.fecha_inicio = m.Curso_FechaFin and c.nombre = m.Curso_Nombre and c.precio_mensual = m.Curso_PrecioMensual                         
+    WHERE m.Inscripcion_Numero IS NOT NULL
+END
+GO
+
+-- Estado de Inscripcion
+CREATE PROCEDURE LOS_LINDOS.Migrar_Estado_de_Inscripcion AS
+BEGIN
+INSERT INTO Estado_de_Inscripción (numero_inscripcion_curso, codigo_estado, fecha_de_respuesta)
+SELECT distinct m.Inscripcion_Numero, e.codigo_estado, m.Inscripcion_FechaRespuesta
+    FROM gd_esquema.Maestra m JOIN Estado e ON e.nombre_tipo_estado = m.inscripcion_Estado
+    WHERE m.Inscripcion_Numero IS NOT NULL
 END
 GO
 
@@ -503,69 +559,3 @@ WHERE
 END
 GO
 
-
-
-/*
-CREATE TABLE LOS_LINDOS.Cursos (
-   codigo BIGINT PRIMARY KEY,
-   codigo_sede BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Sedes(codigo),
-   codigo_profesor BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Profesores(codigo),
-   nombre VARCHAR(255),
-   descripcion VARCHAR(255),
-   codigo_categoria BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Categorias(codigo),
-   fecha_inicio DATETIME2,
-   fecha_fin DATETIME2,
-   duracion_meses BIGINT,
-   codigo_turno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Turnos(codigo),
-   precio_mensual DECIMAL(38,2),
-   codigo_dia_semana BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Dias_Semana(codigo),
-   codigo_trabajo_practico BIGINT
-);
-GO
-*/
-
-
-CREATE PROCEDURE LOS_LINDOS.Migrar_Cursos AS
-BEGIN
-    INSERT INTO Cursos (codigo ,codigo_sede, codigo_profesor, nombre, descripcion, codigo_categoria, fecha_inicio, fecha_fin, duracion_meses, codigo_turno, precio_mensual)
-    SELECT DISTINCT m.Curso_Codigo, s.codigo, p.codigo , m.Curso_Nombre, m.Curso_Descripcion, c.codigo, m.Curso_FechaInicio, m.Curso_FechaFin, m.Curso_DuracionMeses, t.codigo, m.Curso_PrecioMensual
-    FROM gd_esquema.Maestra m
-             JOIN LOS_LINDOS.Sede s on s.nombre = m.Sede_nombre -- IMPORTANTISIMO: NO HAY COLUMNA "CURSO_SEDE", ENTONCES TENGO QUE ASIGNARLE UNA SEDE A UN CURSO SI LA FILA DE ESE "CURSO_CODIGO" TIENE LOS DATOS DE SEDE QUE COINCIDAN CON UNA FILA DE LA TABLA DE SEDES, alcanza con matchear los datos DESNORMALIZADOS de la sede ya que se asume que las demás tablas tienen datos consistentes
-             JOIN LOS_LINDOS.Profesor p on p.nombre = m.Profesor_nombre and p.apellido = m.Profesor_apellido and p.telefono = m.Profesor_telefono and p.dni = m.Profesor_Dni and p.mail = m.Profesor_Mail and p.fecha_nacimiento = m.Profesor_FechaNacimiento -- IMPORTANTISIMO: NO HAY COLUMNA "CURSO_PROFESOR", ENTONCES TENGO QUE ASIGNARLE UN PROFESOR A UN CURSO SI LA FILA DE ESE "CURSO_CODIGO" TIENE LOS DATOS DE ESE PROFESOR QUE COINCIDAN CON UNA FILA DE LA TABLA DE PROFESORES
-             JOIN LOS_LINDOS.Categoria c on c.nombre = m.Curso_Categoria
-             JOIN LOS_LINDOS.Turno t on t.nombre = m.Curso_Turno
-    WHERE m.Curso_Codigo is not null ; -- Si Curso_Codigo NO ES NULL => Tampoco lo son todas las filas que se usan para obtener informacion: Sede_nombre, Profesor_nombre, Profesor_apellido, Profesor_telefono, Profesor_Dni, Profesor_Mail, Profesor_FechaNacimiento, Curso_Categoria, Curso_Turno
-
-    /*
-    Capaz lo que nos dicen es que, si no hay una columna expícita que establezca la sede de un curso o el profesor de un curso, no intentemos obtener los valores de la tabla, si no que lo dejemos vacío.
-    */
-
-END
-GO
-
-
-CREATE PROCEDURE LOS_LINDOS.Migrar_Inscripciones_Cursos AS
-BEGIN
-    INSERT INTO Inscripcion_Curso (legajo_alumno, curso_codigo, codigo_estado_inscripcion, fecha, fecha_respuesta)
-    SELECT
-        --yo tincho deje por acá
-        x,
-        y,
-        z,
-        m.Inscripcion_Fecha,
-        m.Inscripcion_FechaRespuesta
-    FROM gd_esquema.Maestra m
-    WHERE m.Inscripcion_Fecha IS NOT NULL AND m.Inscripcion_FechaRespuesta IS NOT NULL
-END
-GO
-
-/*
-CREATE TABLE LOS_LINDOS.Inscripcion_Curso(
-    numero BIGINT PRIMARY KEY,
-    legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
-    curso_codigo BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
-    codigo_estado_inscripcion BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Estado_de_inscripción(codigo_estado_inscripcion),
-    fecha DATETIME2,
-    fecha_respuesta DATETIME2
-);
-GO*/
