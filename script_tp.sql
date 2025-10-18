@@ -540,22 +540,43 @@ END
 GO
 
 
+/*
+CREATE TABLE LOS_LINDOS.Factura (
+    numero BIGINT PRIMARY KEY,
+    fecha_emision DATETIME2,
+    fecha_vencimiento DATETIME2,
+    importe_total DECIMAL(18,2),
+    legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo)
+);
+GO
+
+CREATE TABLE LOS_LINDOS.Factura_De_Curso (
+    codigo BIGINT PRIMARY KEY,
+    periodo BIGINT,
+    importe DECIMAL(18,2),
+    codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
+    numero_factura BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Factura(numero),
+    periodo_anio BIGINT
+);
+GO
+
+
+*/
+
+
 -- Factura
 CREATE PROCEDURE LOS_LINDOS.Migrar_Facturas AS
 BEGIN
-INSERT INTO Factura (fecha_emision,fecha_vencimiento,importe_total, legajo_alumno)
-SELECT
+INSERT INTO Factura (numero,fecha_emision,fecha_vencimiento,importe_total, legajo_alumno)
+SELECT DISTINCT
+    m.Factura_Numero,
     m.Factura_FechaEmision,
     m.Factura_FechaVencimiento,
-    m.importe_total,
+    m.Factura_Total, -- > CREO QUE ESTE DATO ESTA NORMALIZADO DE LA TABLA, SI NO LO ESTUVIESE, SE DEBERÍA AVERIGUAR CON LA SUMA DE LOS IMPORTES DE TODOS LOS DETALLES_FACTURA_IMPORTE (Factura_de_inscripcion)
     a.legajo
-    FROM gd_esquema.Maestra m
-JOIN Alumno a ON a.legajo= m.Alumno_Legajo AND m.Alumno_Legajo IS NOT NULL
+    FROM gd_esquema.Maestra m JOIN Alumno a ON a.legajo= m.Alumno_Legajo AND m.Alumno_Legajo IS NOT NULL
 WHERE
-    m.Factura_FechaEmision, IS NOT NULL,
-    m.Factura_FechaVencimiento IS NOT NULL,
-    m.importe_total IS NOT NULL,
-    a.legajo IS NOT NULL
+    m.Factura_Numero is not null;
 END
 GO
 
