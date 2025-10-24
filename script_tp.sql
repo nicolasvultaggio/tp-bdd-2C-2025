@@ -182,7 +182,7 @@ CREATE TABLE LOS_LINDOS.Curso_x_dia (
 GO
 
 CREATE TABLE LOS_LINDOS.Modulo (
-    codigo BIGINT PRIMARY KEY,
+    codigo BIGINT PRIMARY KEY IDENTITY(1,1),
     nombre VARCHAR(255),
     descripcion BIGINT,
     codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo)
@@ -190,9 +190,11 @@ CREATE TABLE LOS_LINDOS.Modulo (
 GO
 
 CREATE TABLE LOS_LINDOS.Trabajo_Practico (
-   codigo BIGINT PRIMARY KEY,
+   legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
    codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
-   fecha_de_entrega DATE
+   nota BIGINT,
+   fecha_evaluacion DATETIME2,
+   PRIMARY KEY (legajo_alumno, codigo_curso)
 );
 GO
 
@@ -250,14 +252,6 @@ CREATE TABLE LOS_LINDOS.Inscripcion_de_final (
 );
 GO
 
-CREATE TABLE LOS_LINDOS.Trabajo_Practico_Alumno (
-   codigo BIGINT PRIMARY KEY,
-   codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
-   legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
-   nota BIGINT,
-   fecha_evaluacion DATETIME2
-);
-GO
 
 CREATE TABLE LOS_LINDOS.Observacion (
   codigo BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -539,31 +533,6 @@ SELECT distinct m.Inscripcion_Numero, e.codigo_estado, m.Inscripcion_FechaRespue
 END
 GO
 
-
-/*
-CREATE TABLE LOS_LINDOS.Factura (
-    numero BIGINT PRIMARY KEY,
-    fecha_emision DATETIME2,
-    fecha_vencimiento DATETIME2,
-    importe_total DECIMAL(18,2),
-    legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo)
-);
-GO
-
-CREATE TABLE LOS_LINDOS.Factura_De_Curso (
-    codigo BIGINT PRIMARY KEY,
-    periodo BIGINT,
-    importe DECIMAL(18,2),
-    codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
-    numero_factura BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Factura(numero),
-    periodo_anio BIGINT
-);
-GO
-
-
-*/
-
-
 -- Factura
 CREATE PROCEDURE LOS_LINDOS.Migrar_Facturas AS
 BEGIN
@@ -572,7 +541,7 @@ SELECT DISTINCT
     m.Factura_Numero,
     m.Factura_FechaEmision,
     m.Factura_FechaVencimiento,
-    m.Factura_Total, -- > CREO QUE ESTE DATO ESTA NORMALIZADO DE LA TABLA, SI NO LO ESTUVIESE, SE DEBERÍA AVERIGUAR CON LA SUMA DE LOS IMPORTES DE TODOS LOS DETALLES_FACTURA_IMPORTE (Factura_de_inscripcion)
+    m.Factura_Total, --> dato normalizado
     a.legajo
     FROM gd_esquema.Maestra m JOIN Alumno a ON a.legajo= m.Alumno_Legajo AND m.Alumno_Legajo IS NOT NULL
 WHERE
@@ -580,3 +549,41 @@ WHERE
 END
 GO
 
+--Curso_x_alumno
+CREATE PROCEDURE LOS_LINDOS.Migrar_Curso_x_Alumno AS
+BEGIN
+INSERT INTO Curso_x_Alumno (legajo_alumno,codigo_curso)
+    select distinct Alumno_Legajo, Curso_Codigo 
+        from gd_esquema.Maestra where Alumno_Legajo is not null and Curso_Codigo is not null
+END
+GO
+
+
+--Curso_x_dia
+CREATE PROCEDURE LOS_LINDOS.Migrar_Curso_x_Dia AS
+BEGIN
+INSERT INTO Curso_x_dia (codigo_curso,codigo_dia_semana)
+    select distinct Curso_Codigo, ds.codigo 
+        from gd_esquema.Maestra m
+            join Dia_Semana ds on ds.nombre = m.Curso_Dia 
+        where m.Curso_Dia is not null and m.Curso_Codigo is not null
+END
+GO
+
+
+-- Modulo
+CREATE PROCEDURE LOS_LINDOS.Migrar_Modulo AS
+BEGIN
+INSERT INTO Modulo (nombre,descripcion,codigo_curso)
+    select distinct Modulo_Nombre, Modulo_Descripcion, Curso_Codigo from gd_esquema.Maestra where Modulo_Nombre is not null and Modulo_Descripcion is not null;
+END
+GO
+
+-- Trabajo Práctico
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Trabajo_Practico AS
+BEGIN
+INSERT INTO Trabajo_Practico (legajo_alumno,codigo_curso,nota,fecha_evaluacion)
+    select distinct Alumno_Legajo,Curso_Codigo,Trabajo_Practico_Nota,Trabajo_Practico_FechaEvaluacion from gd_esquema.Maestra where Trabajo_Practico_Nota is not null and Trabajo_Practico_FechaEvaluacion is not null;
+END
+GO

@@ -12,31 +12,52 @@ SELECT Factura_Numero, Factura_FechaEmision, Factura_FechaVencimiento, Factura_T
 
 
 
-SELECT DISTINCT Factura_Numero, count (distinct Detalle_Factura_Importe) FROM gd_esquema.Maestra group by Factura_Numero;
+SELECT DISTINCT Factura_Numero, count (DISTINCT COALESCE(Detalle_Factura_Importe, -1) ) FROM gd_esquema.Maestra group by Factura_Numero;
+SELECT DISTINCT Factura_Numero, count (DISTINCT Detalle_Factura_Importe ) FROM gd_esquema.Maestra group by Factura_Numero
 
 SELECT * FROM gd_esquema.Maestra where Detalle_Factura_Importe is not null and Alumno_Legajo is null;
 SELECT * FROM gd_esquema.Maestra where Detalle_Factura_Importe is not null and Curso_Codigo is null;
 
-SELECT * FROM gd_esquema.Maestra where Detalle_Factura_Importe is not null and Factura_Numero is null;
-SELECT * FROM gd_esquema.Maestra where Factura_Numero is not null and Detalle_Factura_Importe is null;
-	--> esto puede ser en caso de que el detalle factura se emite solo si el alumno está en varios cursos
+SELECT Factura_Numero, Factura_FechaEmision, Factura_FechaVencimiento, Factura_Total, Detalle_Factura_Importe, Periodo_Anio, Periodo_Mes, Pago_Fecha, Pago_Importe, Pago_MedioPago  FROM gd_esquema.Maestra where Detalle_Factura_Importe is not null and Factura_Numero is null;
 
+SELECT DISTINCT Factura_Numero, Factura_FechaEmision, Factura_FechaVencimiento, Factura_Total, Detalle_Factura_Importe, Periodo_Anio, Periodo_Mes, Pago_Fecha, Pago_Importe, Pago_MedioPago  FROM gd_esquema.Maestra where Factura_Numero is not null and Detalle_Factura_Importe is null;
+	
 SELECT DISTINCT Factura_Numero,Factura_Total, Detalle_Factura_Importe FROM gd_esquema.Maestra where Factura_Total != Detalle_Factura_Importe;
 
 SELECT DISTINCT Factura_Numero,Factura_Total, Detalle_Factura_Importe FROM gd_esquema.Maestra where Curso_PrecioMensual != Factura_Total;
 SELECT DISTINCT Factura_Numero,Factura_Total, Detalle_Factura_Importe FROM gd_esquema.Maestra where Curso_PrecioMensual != Detalle_Factura_Importe;
 
---relacionadas: 
-	-- numero de factura, fecha emision, fecha vencimiento y factura total 
-	-- detalle factura importe, año y mes -->  ES EL PAGO DE UN CURSO POR UN ALUMNO EN UN MES Y AÑO DETERMINADOS
-	-- fecha de pago, fecha de importe, medio de pago
+
+
+
+SELECT 
+	Factura_Numero, 
+	Factura_FechaEmision, 
+	Factura_FechaVencimiento, 
+	Factura_Total, 
+	Detalle_Factura_Importe,
+	Periodo_Anio, 
+	Periodo_Mes, 
+	Pago_Fecha, 
+	Pago_Importe, 
+	Pago_MedioPago  
+FROM gd_esquema.Maestra;
+
 
 /*
-CUÁL ES LA RELACION ENTRE FACTURA Y DETALLE_FACTURA ?
+hay filas que se encargan de asociar a las columnas con los detalles
 
-CUANDO EL ALUMNO ESTÁ ANOTADO A UN SOLO CURSO, no se le genera un detalle_factura_importe, ya que la factura es lógicamente, sobre un solo curso.
+hay filas que se encargan de asociar a facturas con los pagos
 
-CUANDO EL ALUMNO ESTÁ ANOTADO EN VARIOS CURSOS, se le genera UN SOLO detalle_factura_importe que, tiene siempre el total de lo que le cobraron todos los cursos, y lo asocia a UNO de los cursos.
-
+si hay filas de facturas SIN DETALLES, es porque son filas que indican pagos
 
 */
+
+
+-- para migrar curso x alumno
+select Alumno_Legajo, count(distinct Curso_Codigo) from gd_esquema.Maestra group by Alumno_Legajo;
+
+select distinct Alumno_Legajo, Curso_Codigo from gd_esquema.Maestra where Alumno_Legajo is not null and Curso_Codigo is not null
+
+
+select Curso_Codigo,count(distinct Curso_Dia) from gd_esquema.Maestra group by Curso_Codigo;
