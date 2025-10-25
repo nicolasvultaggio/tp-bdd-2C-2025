@@ -107,3 +107,17 @@ SELECT Evaluacion_Curso_fechaEvaluacion, Curso_Codigo from gd_esquema.Maestra wh
 -- Inscripcion de final
 
 select * from gd_esquema.Maestra where Curso_Codigo is null and Inscripcion_Final_Nro is not null   
+
+--pARCIAL DE ALUMNO
+
+ select DISTINCT
+		m.Curso_Codigo,
+		m.Alumno_Legajo, 
+        m.Evaluacion_Curso_Nota, 
+        m.Evaluacion_Curso_Presente, 
+		m.Evaluacion_Curso_Instancia,
+		m.Evaluacion_Curso_fechaEvaluacion
+		from gd_esquema.Maestra M
+		where Curso_Codigo is not null and Evaluacion_Curso_fechaEvaluacion is not null
+	
+          
