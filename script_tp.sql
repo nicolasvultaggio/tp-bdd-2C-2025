@@ -660,4 +660,24 @@ BEGIN
                     and Curso_Codigo is not null
 END
 GO  
+
+-- Inscripcion a final
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Inscripcion_de_final AS
+BEGIN
+    INSERT INTO Inscripcion_de_final (nro_inscripcion,legajo_alumno,codigo_final,fecha_inscripción)
+        SELECT distinct Inscripcion_Final_nro,
+                        Alumno_Legajo, 
+                        f.codigo,
+                        Inscripcion_Final_Fecha
+            FROM gd_esquema.Maestra m
+                join Final f on f.codigo_curso = m.Curso_Codigo 
+                            and f.fecha = m.Examen_Final_Fecha 
+                            and f.hora = m.Examen_Final_Hora 
+                            and f.descripcion = m.Examen_Final_Descripcion
+            where m.Inscripcion_Final_Nro is not null
+                and m.Inscripcion_Final_Fecha is not null
+                and m.Curso_Codigo is not null        
+END
   
+

@@ -103,3 +103,7 @@ select Modulo_Nombre,Modulo_Descripcion,Curso_Codigo from gd_esquema.Maestra whe
 
 
 SELECT Evaluacion_Curso_fechaEvaluacion, Curso_Codigo from gd_esquema.Maestra where Curso_Codigo is null and Evaluacion_Curso_fechaEvaluacion IS NOT NULL
+
+-- Inscripcion de final
+
+select * from gd_esquema.Maestra where Curso_Codigo is null and Inscripcion_Final_Nro is not null   
