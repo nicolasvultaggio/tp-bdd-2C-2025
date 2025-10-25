@@ -282,7 +282,8 @@ CREATE TABLE LOS_LINDOS.Parcial_de_alumno (
      legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
      nota DATETIME2,
      presente BIT,
-     instancia BIGINT
+     instancia BIGINT,
+     PRIMARY KEY (codigo_parcial, legajo_alumno)
 );
 GO
 
@@ -678,6 +679,30 @@ BEGIN
             where m.Inscripcion_Final_Nro is not null
                 and m.Inscripcion_Final_Fecha is not null
                 and m.Curso_Codigo is not null        
+END  
+GO
+
+-- Parcial de alumno
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Parcial_de_alumno AS
+BEGIN
+    INSERT INTO Parcial_de_alumno  (codigo_parcial, legajo_alumno,nota,presente,instancia)
+    select p.codigo, 
+           m.Alumno_Legajo, 
+           m.Evaluacion_Curso_Nota, 
+           m.Evaluacion_Curso_Presente, 
+           m.Evaluacion_Curso_Instancia 
+       from gd_esquema.Maestra m 
+           join Parcial p on p.codigo_curso = m.Curso_Codigo 
+            and p.nombre_modulo = m.Modulo_Nombre 
+            and p.descripcion_modulo = m.Modulo_Descripcion 
+            and p.fecha = m.Evaluacion_Curso_fechaEvaluacion
+       where  m.Curso_Codigo is not null 
+          and m.Evaluacion_Curso_fechaEvaluacion is not null 
+          and m.Evaluacion_Curso_Instancia is not null
+          and m.Evaluacion_Curso_Presente is not null
+          -- and m.Evaluacion_Final_Nota is not null (!) ESTE NO, ya que hay filas que tienen este campo como nulleable
 END
-  
+GO
+
 
