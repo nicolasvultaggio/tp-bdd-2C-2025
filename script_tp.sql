@@ -773,3 +773,28 @@ BEGIN
         e.observaciones = ps.Encuesta_Observacion;
 END
 GO
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Evaluacion_de_final AS
+BEGIN
+    INSERT INTO Evaluacion_de_final  (codigo_final, legajo_alumno, codigo_profesor, presente, nota)
+    SELECT DISTINCT
+        f.codigo,
+        m.Alumno_Legajo,
+        p.codigo,
+        m.Evaluacion_Final_Presente,
+        m.Evaluacion_Final_Nota
+    FROM gd_esquema.Maestra m
+    JOIN Final f ON
+        f.codigo_curso = m.Curso_Codigo AND
+        f.fecha = m.Examen_Final_Fecha AND
+        f.hora = m.Examen_Final_Hora AND
+        f.descripcion = m.Examen_Final_Descripcion
+    JOIN Profesor p ON
+        p.nombre = m.Profesor_nombre AND
+        p.apellido = m.Profesor_Apellido AND
+        p.dni = m.Profesor_Dni AND
+        p.mail = m.Profesor_Mail AND
+        p.telefono = m.Profesor_Telefono AND
+        p.fecha_nacimiento = m.Profesor_FechaNacimiento;
+END
+GO
