@@ -180,15 +180,7 @@ CREATE TABLE LOS_LINDOS.Curso_x_dia (
      PRIMARY KEY (codigo_dia_semana, codigo_curso)
 );
 GO
-/*
-CREATE TABLE LOS_LINDOS.Modulo (
-    codigo BIGINT PRIMARY KEY IDENTITY(1,1),
-    nombre VARCHAR(255),
-    descripcion BIGINT,
-    codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo)
-);
-GO
-*/
+
 
 CREATE TABLE LOS_LINDOS.Trabajo_Practico (
    legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
@@ -199,7 +191,7 @@ CREATE TABLE LOS_LINDOS.Trabajo_Practico (
 );
 GO
 
-CREATE TABLE LOS_LINDOS.Final (
+CREATE TABLE LOS_LINDOS.Examen_Final (
     codigo BIGINT PRIMARY KEY IDENTITY(1,1),
     codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
     fecha DATETIME2,
@@ -238,14 +230,7 @@ GO
 -- =============================================
 -- NIVEL 5: Tablas que referencian NIVEL 4
 -- =============================================
-/*
-CREATE TABLE LOS_LINDOS.Parcial (
-  codigo BIGINT PRIMARY KEY IDENTITY(1,1),
-  fecha DATETIME2,
-  codigo_modulo BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Modulo(codigo)
-);
-GO
-*/
+
 
 CREATE TABLE LOS_LINDOS.Parcial (
   codigo BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -259,7 +244,7 @@ GO
 CREATE TABLE LOS_LINDOS.Inscripcion_de_final (
    nro_inscripcion BIGINT PRIMARY KEY,
    legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
-   codigo_final BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Final(codigo),
+   codigo_final BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Examen_Final(codigo),
    fecha_inscripción DATETIME2
 );
 GO
@@ -287,9 +272,9 @@ CREATE TABLE LOS_LINDOS.Parcial_de_alumno (
 );
 GO
 
-CREATE TABLE LOS_LINDOS.Evaluacion_de_final (
+CREATE TABLE LOS_LINDOS.Evaluacion_de_Final (
     codigo BIGINT,
-    codigo_final BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Final(codigo),
+    codigo_final BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Examen_Final(codigo),
     legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
     codigo_profesor BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Profesor(codigo),
     presente BIT,
@@ -576,16 +561,6 @@ INSERT INTO Curso_x_dia (codigo_curso,codigo_dia_semana)
 END
 GO
 
-/*
--- Modulo
-CREATE PROCEDURE LOS_LINDOS.Migrar_Modulo AS
-BEGIN
-INSERT INTO Modulo (nombre,descripcion,codigo_curso)
-    select distinct Modulo_Nombre, Modulo_Descripcion, Curso_Codigo from gd_esquema.Maestra where Modulo_Nombre is not null and Modulo_Descripcion is not null;
-END
-GO
-*/
-
 -- Trabajo Práctico
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Trabajo_Practico AS
@@ -596,10 +571,10 @@ END
 GO
 
 
--- Final 
-CREATE PROCEDURE LOS_LINDOS.Migrar_Final AS
+-- Examen_Final 
+CREATE PROCEDURE LOS_LINDOS.Migrar_Examen_Final AS
 BEGIN
-INSERT INTO Final (codigo_curso, fecha, hora, descripcion)
+INSERT INTO Examen_Final (codigo_curso, fecha, hora, descripcion)
     SELECT DISTINCT Curso_Codigo, Examen_Final_Fecha, Examen_Final_Hora, Examen_Final_Descripcion 
         from gd_esquema.Maestra 
             where Examen_Final_Fecha is not null 
@@ -672,7 +647,7 @@ BEGIN
                         f.codigo,
                         Inscripcion_Final_Fecha
             FROM gd_esquema.Maestra m
-                join Final f on f.codigo_curso = m.Curso_Codigo 
+                join Examen_Final f on f.codigo_curso = m.Curso_Codigo 
                             and f.fecha = m.Examen_Final_Fecha 
                             and f.hora = m.Examen_Final_Hora 
                             and f.descripcion = m.Examen_Final_Descripcion
@@ -784,7 +759,7 @@ BEGIN
         m.Evaluacion_Final_Presente,
         m.Evaluacion_Final_Nota
     FROM gd_esquema.Maestra m
-    JOIN Final f ON
+    JOIN Examen_Final f ON
         f.codigo_curso = m.Curso_Codigo AND
         f.fecha = m.Examen_Final_Fecha AND
         f.hora = m.Examen_Final_Hora AND
@@ -795,6 +770,19 @@ BEGIN
         p.dni = m.Profesor_Dni AND
         p.mail = m.Profesor_Mail AND
         p.telefono = m.Profesor_Telefono AND
-        p.fecha_nacimiento = m.Profesor_FechaNacimiento;
+        p.fecha_nacimiento = m.Profesor_FechaNacimiento
+    WHERE m.Evaluacion_Final_Presente is not null  
+       -- and Evaluacion_Final_Nota is not null (!) -> NO PUEDE ir esta linea, ya que, hay casos de evaluaciones de final SIN NOTA, son los que no se presentó el alumno
+          and m.Alumno_Legajo is not null
+          and m.Curso_Codigo is not null
+          and m.Examen_Final_Descripcion is not null
+          and m.Examen_Final_Hora is not null
+          and m.Examen_Final_Fecha is not null
+          and m.Profesor_nombre is not null
+          and m.Profesor_Apellido is not null
+          and m.Profesor_Dni is not null
+          and m.Profesor_Mail is not null
+          and m.Profesor_Telefono is not null
+          and m.Profesor_FechaNacimiento is not null
 END
 GO

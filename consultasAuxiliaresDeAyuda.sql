@@ -119,5 +119,23 @@ select * from gd_esquema.Maestra where Curso_Codigo is null and Inscripcion_Fina
 		m.Evaluacion_Curso_fechaEvaluacion
 		from gd_esquema.Maestra M
 		where Curso_Codigo is not null and Evaluacion_Curso_fechaEvaluacion is not null
+
+-- respuestas
+
+SELECT DISTINCT
+            m.Curso_Codigo,
+            m.Encuesta_FechaRegistro,
+            m.Encuesta_Observacion,
+            m.Encuesta_Nota1 
+        FROM gd_esquema.Maestra m
 	
-          
+SELECT DISTINCT
+        m.Alumno_Legajo,
+        m.Evaluacion_Final_Presente,
+        m.Evaluacion_Final_Nota,
+        m.Examen_Final_Hora,
+        m.Examen_Final_Fecha,
+		m.Examen_Final_Descripcion
+    FROM gd_esquema.Maestra m
+	where Evaluacion_Final_Presente is not null 
+    
