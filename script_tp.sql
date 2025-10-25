@@ -645,18 +645,9 @@ BEGIN
         where m.Pago_Importe is not null and m.Pago_Fecha is not null and m.Pago_MedioPago is not null;
 END
 GO
---Parcial
 
-/*
-CREATE TABLE LOS_LINDOS.Parcial (
-  codigo BIGINT PRIMARY KEY IDENTITY(1,1),
-  fecha DATETIME2,
-  codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
-  nombre_modulo VARCHAR(255),
-  descripcion_modulo VARCHAR(255)
-);
-GO
-*/
+
+--Parcial
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Parcial AS
 BEGIN
