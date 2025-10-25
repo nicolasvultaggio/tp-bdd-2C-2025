@@ -180,7 +180,7 @@ CREATE TABLE LOS_LINDOS.Curso_x_dia (
      PRIMARY KEY (codigo_dia_semana, codigo_curso)
 );
 GO
-
+/*
 CREATE TABLE LOS_LINDOS.Modulo (
     codigo BIGINT PRIMARY KEY IDENTITY(1,1),
     nombre VARCHAR(255),
@@ -188,6 +188,7 @@ CREATE TABLE LOS_LINDOS.Modulo (
     codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo)
 );
 GO
+*/
 
 CREATE TABLE LOS_LINDOS.Trabajo_Practico (
    legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
@@ -199,7 +200,7 @@ CREATE TABLE LOS_LINDOS.Trabajo_Practico (
 GO
 
 CREATE TABLE LOS_LINDOS.Final (
-    codigo BIGINT PRIMARY KEY,
+    codigo BIGINT PRIMARY KEY IDENTITY(1,1),
     codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
     fecha DATETIME2,
     hora VARCHAR(255),
@@ -210,13 +211,14 @@ GO
 CREATE TABLE LOS_LINDOS.Encuesta (
       codigo BIGINT PRIMARY KEY IDENTITY(1,1),
       codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
-      fecha_registro DATETIME2
+      fecha_registro DATETIME2,
+      observaciones varchar(255)
 );
 GO
 
-CREATE TABLE LOS_LINDOS.Factura_De_Curso (
-    codigo BIGINT PRIMARY KEY,
-    periodo BIGINT,
+CREATE TABLE LOS_LINDOS.Detalle_Factura (
+    codigo BIGINT PRIMARY KEY IDENTITY(1,1),
+    periodo_mes BIGINT,
     importe DECIMAL(18,2),
     codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
     numero_factura BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Factura(numero),
@@ -236,11 +238,21 @@ GO
 -- =============================================
 -- NIVEL 5: Tablas que referencian NIVEL 4
 -- =============================================
-
+/*
 CREATE TABLE LOS_LINDOS.Parcial (
-  codigo BIGINT PRIMARY KEY,
+  codigo BIGINT PRIMARY KEY IDENTITY(1,1),
   fecha DATETIME2,
   codigo_modulo BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Modulo(codigo)
+);
+GO
+*/
+
+CREATE TABLE LOS_LINDOS.Parcial (
+  codigo BIGINT PRIMARY KEY IDENTITY(1,1),
+  fecha DATETIME2,
+  codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
+  nombre_modulo VARCHAR(255),
+  descripcion_modulo VARCHAR(255)
 );
 GO
 
@@ -252,13 +264,6 @@ CREATE TABLE LOS_LINDOS.Inscripcion_de_final (
 );
 GO
 
-
-CREATE TABLE LOS_LINDOS.Observacion (
-  codigo BIGINT PRIMARY KEY IDENTITY(1,1),
-  observacion VARCHAR(255) NOT NULL,
-  codigo_encuesta BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Encuesta(codigo)
-);
-GO
 
 CREATE TABLE LOS_LINDOS.Respuesta (
    codigo BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -570,7 +575,7 @@ INSERT INTO Curso_x_dia (codigo_curso,codigo_dia_semana)
 END
 GO
 
-
+/*
 -- Modulo
 CREATE PROCEDURE LOS_LINDOS.Migrar_Modulo AS
 BEGIN
@@ -578,6 +583,7 @@ INSERT INTO Modulo (nombre,descripcion,codigo_curso)
     select distinct Modulo_Nombre, Modulo_Descripcion, Curso_Codigo from gd_esquema.Maestra where Modulo_Nombre is not null and Modulo_Descripcion is not null;
 END
 GO
+*/
 
 -- Trabajo Práctico
 
@@ -587,3 +593,80 @@ INSERT INTO Trabajo_Practico (legajo_alumno,codigo_curso,nota,fecha_evaluacion)
     select distinct Alumno_Legajo,Curso_Codigo,Trabajo_Practico_Nota,Trabajo_Practico_FechaEvaluacion from gd_esquema.Maestra where Trabajo_Practico_Nota is not null and Trabajo_Practico_FechaEvaluacion is not null;
 END
 GO
+
+
+-- Final 
+CREATE PROCEDURE LOS_LINDOS.Migrar_Final AS
+BEGIN
+INSERT INTO Final (codigo_curso, fecha, hora, descripcion)
+    SELECT DISTINCT Curso_Codigo, Examen_Final_Fecha, Examen_Final_Hora, Examen_Final_Descripcion 
+        from gd_esquema.Maestra 
+            where Examen_Final_Fecha is not null 
+                and Examen_Final_Hora is not null 
+                and Examen_Final_Descripcion is not null
+                and Curso_Codigo is not null
+END
+GO
+
+
+--Encuesta
+CREATE PROCEDURE LOS_LINDOS.Migrar_Encuesta AS
+BEGIN
+INSERT INTO Encuesta(codigo_curso,fecha_registro,observaciones)
+    SELECT DISTINCT Curso_Codigo , Encuesta_FechaRegistro, Encuesta_Observacion 
+        from gd_esquema.Maestra 
+            where Curso_Codigo is not null 
+            and Encuesta_FechaRegistro is not null
+            and Encuesta_Observacion is not null
+END
+GO
+
+--Detalle Factura
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Detalle_Factura AS
+BEGIN
+
+INSERT INTO Detalle_Factura (importe,codigo_curso, periodo_mes,periodo_anio, numero_factura)
+    SELECT DISTINCT Detalle_Factura_Importe, Curso_Codigo, Periodo_Mes, Periodo_Anio, Factura_Numero 
+        from gd_esquema.Maestra 
+            where Detalle_Factura_Importe is not null
+                and Curso_Codigo is not null
+                and Factura_Numero is not null
+END
+GO
+
+--Pago
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Pago AS
+BEGIN 
+   INSERT INTO Pago ( importe,fecha,codigo_medio_pago, numero_factura)
+        select m.Pago_Importe,m.Pago_Fecha,mp.codigo from gd_esquema.Maestra m
+            join Medio_Pago mp on mp.medio_pago = m.Pago_MedioPago
+        where m.Pago_Importe is not null and m.Pago_Fecha is not null and m.Pago_MedioPago is not null;
+END
+GO
+--Parcial
+
+/*
+CREATE TABLE LOS_LINDOS.Parcial (
+  codigo BIGINT PRIMARY KEY IDENTITY(1,1),
+  fecha DATETIME2,
+  codigo_curso BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Curso(codigo),
+  nombre_modulo VARCHAR(255),
+  descripcion_modulo VARCHAR(255)
+);
+GO
+*/
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Parcial AS
+BEGIN
+    INSERT INTO Parcial (fecha, codigo_curso, nombre_modulo, descripcion_modulo)
+        SELECT DISTINCT Evaluacion_Curso_fechaEvaluacion, Curso_Codigo, Modulo_Nombre, Modulo_Descripcion 
+            from gd_esquema.Maestra 
+                where Evaluacion_Curso_fechaEvaluacion is not null -- DEVUELVE 4593 como cada modulo
+                    and Modulo_Nombre is not null
+                    and Modulo_Descripcion is not null
+                    and Curso_Codigo is not null
+END
+GO  
+  

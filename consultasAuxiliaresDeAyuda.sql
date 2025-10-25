@@ -61,3 +61,45 @@ select distinct Alumno_Legajo, Curso_Codigo from gd_esquema.Maestra where Alumno
 
 
 select Curso_Codigo,count(distinct Curso_Dia) from gd_esquema.Maestra group by Curso_Codigo;
+
+
+-- TRABAJO PRACTICO
+
+SELECT Trabajo_Practico_Nota, Trabajo_Practico_FechaEvaluacion from gd_esquema.Maestra where Trabajo_Practico_Nota is not null and Trabajo_Practico_FechaEvaluacion is null;
+SELECT Trabajo_Practico_Nota, Trabajo_Practico_FechaEvaluacion from gd_esquema.Maestra where Trabajo_Practico_Nota is null and Trabajo_Practico_FechaEvaluacion is not null;
+
+SELECT Trabajo_Practico_Nota, Trabajo_Practico_FechaEvaluacion from gd_esquema.Maestra where Trabajo_Practico_Nota is not null and Trabajo_Practico_FechaEvaluacion is not null and  (Curso_Codigo is null or Alumno_Legajo is null);
+ 
+-- FINAL
+
+SELECT DISTINCT Curso_Codigo, Examen_Final_Fecha, Examen_Final_Hora, Examen_Final_Descripcion from gd_esquema.Maestra where Examen_Final_Fecha is not null and Examen_Final_Hora is not null and Examen_Final_Descripcion IS NOT NULL
+ 
+ --Encuesta
+
+SELECT DISTINCT Curso_Codigo, Encuesta_FechaRegistro from gd_esquema.Maestra where Encuesta_FechaRegistro is not null
+SELECT DISTINCT Curso_Codigo , count (distinct Encuesta_FechaRegistro) from gd_esquema.Maestra group by Curso_Codigo
+SELECT DISTINCT Curso_Codigo , Encuesta_FechaRegistro, Encuesta_Observacion from gd_esquema.Maestra where Curso_Codigo is null and Encuesta_FechaRegistro is not null
+SELECT DISTINCT Curso_Codigo , Encuesta_FechaRegistro, Encuesta_Observacion from gd_esquema.Maestra where Curso_Codigo is not null and Encuesta_FechaRegistro is null
+
+--Detalle factura
+
+select Curso_Codigo, Factura_Numero, Detalle_Factura_Importe from gd_esquema.Maestra where Detalle_Factura_Importe IS NOT NULL
+
+select  Curso_Codigo, count (distinct Factura_Numero) ,count ( distinct Detalle_Factura_Importe) from gd_esquema.Maestra group by Curso_Codigo
+
+--PAGO
+
+select Factura_numero, Pago_Importe from gd_esquema.Maestra where Pago_Importe is not null;
+
+select Pago_Importe,Pago_Fecha,Pago_MedioPago from gd_esquema.Maestra 
+
+--PARCIAL y modulo
+
+select Modulo_Nombre,Modulo_Descripcion,count(distinct Curso_Codigo) from gd_esquema.Maestra group by Modulo_Nombre, Modulo_Descripcion;
+
+select distinct Modulo_Nombre,Modulo_Descripcion,Curso_Codigo from gd_esquema.Maestra;
+
+select Modulo_Nombre,Modulo_Descripcion,Curso_Codigo from gd_esquema.Maestra where  Modulo_Nombre is not null and Modulo_Descripcion is not null and Curso_Codigo is null; ---BIEN DA NULL
+
+
+SELECT Evaluacion_Curso_fechaEvaluacion, Curso_Codigo from gd_esquema.Maestra where Curso_Codigo is null and Evaluacion_Curso_fechaEvaluacion IS NOT NULL
