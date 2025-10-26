@@ -679,5 +679,58 @@ BEGIN
                 and m.Inscripcion_Final_Fecha is not null
                 and m.Curso_Codigo is not null        
 END
-  
 
+
+CREATE PROCEDURE LOS_LINDOS.Migrar_Respuesta AS
+BEGIN
+    INSERT INTO Respuesta (codigo_pregunta, codigo_encuesta, respuesta)
+    SELECT ps.codigo_pregunta, e.codigo, ps.respuesta
+    FROM (
+        SELECT DISTINCT
+            m.Curso_Codigo,
+            m.Encuesta_FechaRegistro,
+            m.Encuesta_Observacion,
+            p.codigo AS codigo_pregunta,
+            m.Encuesta_Nota1 AS respuesta
+        FROM gd_esquema.Maestra m
+        JOIN Pregunta p ON p.enunciado = m.Encuesta_Pregunta1
+
+        UNION
+
+        SELECT DISTINCT
+            m.Curso_Codigo,
+            m.Encuesta_FechaRegistro,
+            m.Encuesta_Observacion,
+            p.codigo AS codigo_pregunta,
+            m.Encuesta_Nota2 AS respuesta
+        FROM gd_esquema.Maestra m
+        JOIN Pregunta p ON p.enunciado = m.Encuesta_Pregunta2
+
+        UNION
+
+        SELECT DISTINCT
+            m.Curso_Codigo,
+            m.Encuesta_FechaRegistro,
+            m.Encuesta_Observacion,
+            p.codigo AS codigo_pregunta,
+            m.Encuesta_Nota3 AS respuesta
+        FROM gd_esquema.Maestra m
+        JOIN Pregunta p ON p.enunciado = m.Encuesta_Pregunta3
+
+        UNION
+
+        SELECT DISTINCT
+            m.Curso_Codigo,
+            m.Encuesta_FechaRegistro,
+            m.Encuesta_Observacion,
+            p.codigo AS codigo_pregunta,
+            m.Encuesta_Nota4 AS respuesta
+        FROM gd_esquema.Maestra m
+        JOIN Pregunta p ON p.enunciado = m.Encuesta_Pregunta4
+    ) ps
+    JOIN Encuesta e ON
+        e.codigo_curso = ps.Curso_Codigo AND
+        e.fecha_registro = ps.Encuesta_FechaRegistro AND
+        e.observaciones = ps.Encuesta_Observacion;
+END
+GO
