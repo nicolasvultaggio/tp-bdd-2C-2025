@@ -4,6 +4,7 @@ go
 create schema LOS_LINDOS;
 go
 
+
 --creacion de tablas
 
 -- =============================================
@@ -44,19 +45,20 @@ GO
 
 CREATE TABLE LOS_LINDOS.Provincia (
    codigo BIGINT PRIMARY KEY IDENTITY(1,1),
-   nombre NVARCHAR(255) NOT NULL
+   nombre NVARCHAR(255)
 );
 GO
 
 CREATE TABLE LOS_LINDOS.Localidad (
     codigo BIGINT PRIMARY KEY IDENTITY(1,1),
-    nombre NVARCHAR(255) NOT NULL
+    nombre NVARCHAR(255)
 );
 GO
 
+
 CREATE TABLE LOS_LINDOS.Direccion (
     codigo BIGINT PRIMARY KEY IDENTITY(1,1),
-    nombre NVARCHAR(255) NOT NULL
+    nombre NVARCHAR(255)
 );
 GO
 
@@ -110,7 +112,7 @@ CREATE TABLE LOS_LINDOS.Profesor (
    codigo_direccion BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Direccion(codigo),
    codigo_localidad BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Localidad(codigo),
    codigo_provincia BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Provincia(codigo),
-   fecha_nacimiento DATETIME
+   fecha_nacimiento DATETIME2(6)
 );
 GO
 
@@ -121,8 +123,8 @@ CREATE TABLE LOS_LINDOS.Curso (
    nombre VARCHAR(255),
    descripcion VARCHAR(255),
    codigo_categoria BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Categoria(codigo),
-   fecha_inicio DATETIME2,
-   fecha_fin DATETIME2,
+   fecha_inicio DATETIME2(6),
+   fecha_fin DATETIME2(6),
    duracion_meses BIGINT,
    codigo_turno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Turno(codigo),
    precio_mensual DECIMAL(38,2)
@@ -141,7 +143,7 @@ CREATE TABLE LOS_LINDOS.Estado_de_Inscripción (
    codigo_estado_inscripcion BIGINT PRIMARY KEY IDENTITY(1,1),
    codigo_estado BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.Estado(codigo_estado),
    numero_inscripcion_curso BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.Inscripcion_Curso(numero),
-   fecha_de_respuesta DATETIME2
+   fecha_de_respuesta DATETIME2(6)
 );
 GO
 
@@ -264,7 +266,7 @@ GO
 CREATE TABLE LOS_LINDOS.Parcial_de_alumno (
      codigo_parcial BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Parcial(codigo),
      legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
-     nota DATETIME2,
+     nota BIGINT,
      presente BIT,
      instancia BIGINT,
      PRIMARY KEY (codigo_parcial, legajo_alumno)
@@ -360,9 +362,11 @@ SELECT DISTINCT Alumno_Localidad FROM gd_esquema.Maestra WHERE Alumno_Localidad 
 UNION
 SELECT DISTINCT Profesor_Localidad FROM gd_esquema.Maestra WHERE Profesor_Localidad IS NOT NULL
 UNION
-SELECT DISTINCT Sede_Localidad FROM gd_esquema.Maestra WHERE Alumno_Provincia IS NOT NULL;
+SELECT DISTINCT Sede_Localidad FROM gd_esquema.Maestra WHERE Sede_Localidad IS NOT NULL;
 END
 GO
+
+
 
 -- direcciones
 CREATE PROCEDURE LOS_LINDOS.Migrar_Direcciones AS
@@ -478,7 +482,8 @@ BEGIN
     INSERT INTO Curso (codigo ,codigo_sede, codigo_profesor, nombre, descripcion, codigo_categoria, fecha_inicio, fecha_fin, duracion_meses, codigo_turno, precio_mensual)
     SELECT DISTINCT 
         m.Curso_Codigo, 
-        s.codigo, p.codigo, 
+        s.codigo, 
+        p.codigo, 
         m.Curso_Nombre, 
         m.Curso_Descripcion, 
         c.codigo,
@@ -488,7 +493,7 @@ BEGIN
         t.codigo, 
         m.Curso_PrecioMensual
     FROM gd_esquema.Maestra m
-             JOIN LOS_LINDOS.Sede s on s.nombre = m.Sede_nombre -- IMPORTANTISIMO: NO HAY COLUMNA "CURSO_SEDE", ENTONCES TENGO QUE ASIGNARLE UNA SEDE A UN CURSO SI LA FILA DE ESE "CURSO_CODIGO" TIENE LOS DATOS DE SEDE QUE COINCIDAN CON UNA FILA DE LA TABLA DE SEDES, alcanza con matchear los datos DESNORMALIZADOS de la sede ya que se asume que las demás tablas tienen datos consistentes
+             JOIN LOS_LINDOS.Sede s on s.nombre = m.Sede_nombre and s.mail =m.Sede_Mail and s.cuit_institucion = m.Institucion_Cuit -- IMPORTANTISIMO: NO HAY COLUMNA "CURSO_SEDE", ENTONCES TENGO QUE ASIGNARLE UNA SEDE A UN CURSO SI LA FILA DE ESE "CURSO_CODIGO" TIENE LOS DATOS DE SEDE QUE COINCIDAN CON UNA FILA DE LA TABLA DE SEDES, alcanza con matchear los datos DESNORMALIZADOS de la sede ya que se asume que las demás tablas tienen datos consistentes
              JOIN LOS_LINDOS.Profesor p on p.nombre = m.Profesor_nombre and p.apellido = m.Profesor_apellido and p.telefono = m.Profesor_telefono and p.dni = m.Profesor_Dni and p.mail = m.Profesor_Mail and p.fecha_nacimiento = m.Profesor_FechaNacimiento -- IMPORTANTISIMO: NO HAY COLUMNA "CURSO_PROFESOR", ENTONCES TENGO QUE ASIGNARLE UN PROFESOR A UN CURSO SI LA FILA DE ESE "CURSO_CODIGO" TIENE LOS DATOS DE ESE PROFESOR QUE COINCIDAN CON UNA FILA DE LA TABLA DE PROFESORES
              JOIN LOS_LINDOS.Categoria c on c.nombre = m.Curso_Categoria
              JOIN LOS_LINDOS.Turno t on t.nombre = m.Curso_Turno
@@ -497,9 +502,10 @@ BEGIN
     /*
     Capaz lo que nos dicen es que, si no hay una columna expícita que establezca la sede de un curso o el profesor de un curso, no intentemos obtener los valores de la tabla, si no que lo dejemos vacío.
     */
-
 END
 GO
+
+ -- IMPORTANTISIMO: NO HAY COLUMNA "CURSO_PROFESOR", ENTONCES TENGO QUE ASIGNARLE UN PROFESOR A UN CURSO SI LA FILA DE ESE "CURSO_CODIGO" TIENE LOS DATOS DE ESE PROFESOR QUE COINCIDAN CON UNA FILA DE LA TABLA DE PROFESORES
 
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Inscripciones_Cursos AS
@@ -511,7 +517,7 @@ BEGIN
         c.codigo,
         m.Inscripcion_Fecha
     FROM gd_esquema.Maestra m JOIN Alumno a on a.nombre = m.Alumno_Nombre and a.apellido = m.Alumno_Apellido and a.dni=m.Alumno_Dni and a.legajo = m.Alumno_Legajo and a.telefono = m.Alumno_Telefono 
-                              JOIN Curso c on c.codigo = m.Curso_Codigo and c.descripcion = m.Curso_Descripcion and c.duracion_meses = m.Curso_DuracionMeses and c.fecha_fin = m.Curso_FechaFin and c.fecha_inicio = m.Curso_FechaFin and c.nombre = m.Curso_Nombre and c.precio_mensual = m.Curso_PrecioMensual                         
+                              JOIN Curso c on c.codigo = m.Curso_Codigo and c.descripcion = m.Curso_Descripcion and c.duracion_meses = m.Curso_DuracionMeses  and c.fecha_inicio = m.Curso_FechaInicio and c.fecha_fin = m.Curso_FechaFin and c.nombre = m.Curso_Nombre and c.precio_mensual = m.Curso_PrecioMensual                         
     WHERE m.Inscripcion_Numero IS NOT NULL
 END
 GO
@@ -618,11 +624,12 @@ GO
 CREATE PROCEDURE LOS_LINDOS.Migrar_Pago AS
 BEGIN 
    INSERT INTO Pago ( importe,fecha,codigo_medio_pago, numero_factura)
-        select m.Pago_Importe,m.Pago_Fecha,mp.codigo from gd_esquema.Maestra m
-            join Medio_Pago mp on mp.medio_pago = m.Pago_MedioPago
+        select distinct m.Pago_Importe,m.Pago_Fecha,mp.codigo,m.Factura_Numero from gd_esquema.Maestra m
+            join LOS_LINDOS.Medio_Pago mp on mp.medio_pago = m.Pago_MedioPago
         where m.Pago_Importe is not null and m.Pago_Fecha is not null and m.Pago_MedioPago is not null;
 END
 GO
+
 
 
 --Parcial
@@ -663,14 +670,15 @@ GO
 
 CREATE PROCEDURE LOS_LINDOS.Migrar_Parcial_de_alumno AS
 BEGIN
-    INSERT INTO Parcial_de_alumno  (codigo_parcial, legajo_alumno,nota,presente,instancia)
-    select p.codigo, 
+    INSERT INTO Parcial_de_alumno (codigo_parcial, legajo_alumno ,nota,presente,instancia)
+    select distinct 
+           p.codigo, 
            m.Alumno_Legajo, 
            m.Evaluacion_Curso_Nota, 
            m.Evaluacion_Curso_Presente, 
            m.Evaluacion_Curso_Instancia 
        from gd_esquema.Maestra m 
-           join Parcial p on p.codigo_curso = m.Curso_Codigo 
+           join LOS_LINDOS.Parcial p on p.codigo_curso = m.Curso_Codigo 
             and p.nombre_modulo = m.Modulo_Nombre 
             and p.descripcion_modulo = m.Modulo_Descripcion 
             and p.fecha = m.Evaluacion_Curso_fechaEvaluacion
@@ -787,4 +795,107 @@ BEGIN
           and m.Profesor_Telefono is not null
           and m.Profesor_FechaNacimiento is not null
 END
+GO
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    EXEC LOS_LINDOS.Migrar_Estados;
+    PRINT 'Migrar_Estados completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Dia_Semana;
+    PRINT 'Migrar_Dia_Semana completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Categorias;
+    PRINT 'Migrar_Categorias completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Turnos;
+    PRINT 'Migrar_Turnos completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Instituciones;
+    PRINT 'Migrar_Instituciones completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Provincias;
+    PRINT 'Migrar_Provincias completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Localidades;
+    PRINT 'Migrar_Localidades completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Direcciones;
+    PRINT 'Migrar_Direcciones completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Medio_Pago;
+    PRINT 'Migrar_Medio_Pago completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Preguntas;
+    PRINT 'Migrar_Preguntas completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Sedes;
+    PRINT 'Migrar_Sedes completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Alumnos;
+    PRINT 'Migrar_Alumnos completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Profesores;
+    PRINT 'Migrar_Profesores completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Cursos;
+    PRINT 'Migrar_Cursos completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Inscripciones_Cursos;
+    PRINT 'Migrar_Inscripciones_Cursos completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Estado_de_Inscripcion;
+    PRINT 'Migrar_Estado_de_Inscripcion completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Facturas;
+    PRINT 'Migrar_Facturas completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Curso_x_Alumno;
+    PRINT 'Migrar_Curso_x_Alumno completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Curso_x_Dia;
+    PRINT 'Migrar_Curso_x_Dia completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Trabajo_Practico;
+    PRINT 'Migrar_Trabajo_Practico completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Examen_Final;
+    PRINT 'Migrar_Examen_Final completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Encuesta;
+    PRINT 'Migrar_Encuesta completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Detalle_Factura;
+    PRINT 'Migrar_Detalle_Factura completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Pago;
+    PRINT 'Migrar_Pago completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Parcial;
+    PRINT 'Migrar_Parcial completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Inscripcion_de_final;
+    PRINT 'Migrar_Inscripcion_de_final completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Parcial_de_alumno;
+    PRINT 'Migrar_Parcial_de_alumno completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Respuesta;
+    PRINT 'Migrar_Respuesta completed successfully.';
+    
+    EXEC LOS_LINDOS.Migrar_Examen_Final_de_Alumno;
+    PRINT 'Migrar_Examen_Final_de_Alumno completed successfully.';
+
+    COMMIT TRANSACTION;
+    PRINT 'All migrations completed successfully. Transaction committed.';
+END TRY
+BEGIN CATCH
+    ROLLBACK TRANSACTION;
+    PRINT 'Error occurred during migration:';
+    PRINT 'Error Message: ' + ERROR_MESSAGE();
+    PRINT 'Error Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+    PRINT 'Error Number: ' + CAST(ERROR_NUMBER() AS NVARCHAR(10));
+    PRINT 'All changes have been rolled back.';
+END CATCH
 GO
