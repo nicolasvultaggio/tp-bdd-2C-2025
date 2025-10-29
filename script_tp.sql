@@ -4,10 +4,7 @@ go
 create schema LOS_LINDOS;
 go
 
-drop schema LOS_LINDOS;
-/*
-creacion de tablas
-*/
+--creacion de tablas
 
 -- =============================================
 -- NIVEL 1: Tablas sin FOREIGN KEYS
@@ -85,7 +82,9 @@ CREATE TABLE LOS_LINDOS.Sede (
   nombre NVARCHAR(255) NOT NULL,
   codigo_localidad BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Localidad(codigo),
   codigo_direccion BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Direccion(codigo),
-  codigo_provincia BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Provincia(codigo)
+  codigo_provincia BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Provincia(codigo),
+  mail NVARCHAR(255),
+  cuit_institucion NVARCHAR(255) FOREIGN KEY REFERENCES LOS_LINDOS.Institucion(cuit)
 );
 GO
 
@@ -272,7 +271,7 @@ CREATE TABLE LOS_LINDOS.Parcial_de_alumno (
 );
 GO
 
-CREATE TABLE LOS_LINDOS.Evaluacion_de_Final (
+CREATE TABLE LOS_LINDOS.Examen_Final_de_Alumno (
     codigo BIGINT,
     codigo_final BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Examen_Final(codigo),
     legajo_alumno BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Alumno(legajo),
@@ -404,19 +403,22 @@ GO
 --sedes
 CREATE PROCEDURE LOS_LINDOS.Migrar_Sedes AS
 BEGIN
-INSERT INTO Sede (nombre,codigo_provincia, codigo_direccion, codigo_localidad)
+INSERT INTO Sede (nombre,codigo_provincia, codigo_direccion, codigo_localidad, mail, cuit_institucion)
     SELECT DISTINCT 
         m.Sede_Nombre,
         p.codigo,
         d.codigo,
-        l.codigo
+        l.codigo,
+        m.Sede_Mail,
+        m.Institucion_Cuit
     FROM gd_esquema.Maestra m
     JOIN Provincia p ON p.nombre = m.Sede_Provincia AND m.Sede_Provincia IS NOT NULL
     JOIN Direccion d ON d.nombre = m.Sede_Direccion AND m.Sede_Direccion IS NOT NULL
     JOIN Localidad l ON l.nombre = m.Sede_Localidad AND m.Sede_Localidad IS NOT NULL
-    WHERE m.Sede_Nombre IS NOT NULL
+    WHERE m.Sede_Nombre IS NOT NULL and m.Sede_Provincia IS NOT NULL and m.Sede_Direccion IS NOT NULL AND m.Sede_Localidad IS NOT NULL AND m.Sede_Mail IS NOT NULL AND m.Institucion_Cuit IS NOT NULL 
 END
 GO
+
 
 -- alumnos
 CREATE PROCEDURE LOS_LINDOS.Migrar_Alumnos AS
@@ -749,9 +751,9 @@ BEGIN
 END
 GO
 
-CREATE PROCEDURE LOS_LINDOS.Migrar_Evaluacion_de_final AS
+CREATE PROCEDURE LOS_LINDOS.Migrar_Examen_Final_de_Alumno AS
 BEGIN
-    INSERT INTO Evaluacion_de_final  (codigo_final, legajo_alumno, codigo_profesor, presente, nota)
+    INSERT INTO Examen_Final_de_Alumno  (codigo_final, legajo_alumno, codigo_profesor, presente, nota)
     SELECT DISTINCT
         f.codigo,
         m.Alumno_Legajo,
