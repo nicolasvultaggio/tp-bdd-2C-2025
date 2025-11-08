@@ -901,7 +901,7 @@ END CATCH
 GO
 
 
-select * from LOS_LINDOS.Examen_Final_de_Alumno
+select * from LOS_LINDOS.Respuesta
 
 /*
 
