@@ -414,14 +414,15 @@ SELECT
 FROM LOS_LINDOS.BI_FACT_Ausentismo_Finales taf
         JOIN LOS_LINDOS.BI_DIMENSION_Sede s ON s.codigo_sede = taf.codigo_sede
 GO
-                                                                               /*
+
+/*
 7. Desv�o de pagos: Porcentaje de pagos realizados fuera de t�rmino por semestre.
 */
 CREATE TABLE LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino (
-    anio                     INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
-    cuatrimestre             INT NOT NULL CHECK (cuatrimestre IN (1,2)),
-    cantidad_fuera_termino   INT NOT NULL DEFAULT 0,
-    cantidad_total_pagos     INT NOT NULL DEFAULT 0,
+    anio                            INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
+    cuatrimestre                    INT NOT NULL CHECK (cuatrimestre IN (1,2)),
+    cantidad_pagos_fuera_termino    INT NOT NULL DEFAULT 0,
+    cantidad_total_pagos            INT NOT NULL DEFAULT 0,
     PRIMARY KEY (anio, cuatrimestre)
 );
 GO
@@ -433,7 +434,7 @@ SELECT
     COUNT(CASE WHEN p.fecha>f.fecha_vencimiento THEN 1 ELSE NULL END),
     COUNT(*)
 FROM LOS_LINDOS.Pago p
-JOIN LOS_LINDOS.Factura f ON f.numero=p.numero_factura
+        JOIN LOS_LINDOS.Factura f ON f.numero=p.numero_factura
 GROUP BY YEAR(p.fecha), CASE WHEN MONTH(p.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END;
 
 GO
@@ -444,10 +445,11 @@ SELECT
     cuatrimestre,
     CASE WHEN cantidad_total_pagos >0
     THEN
-        (CAST(cantidad_fuera_termino AS FLOAT)/cantidad_total_pagos)*100
+        (CAST(cantidad_pagos_fuera_termino AS FLOAT)/cantidad_total_pagos)*100
     ELSE 0
     END AS porcentaje_fuera_de_termino
 FROM LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino;
+
 
 GO
 /*
