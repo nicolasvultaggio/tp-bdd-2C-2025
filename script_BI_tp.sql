@@ -52,7 +52,6 @@ GO
 
 INSERT INTO LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor (descripcion) VALUES ('25-35'), ('35-50'), ('>50');
 
-
 CREATE TABLE LOS_LINDOS.BI_DIMENSION_Turno (
     codigo_turno        BIGINT,
     nombre              VARCHAR(255) NOT NULL,
@@ -452,9 +451,10 @@ FROM LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino;
 
 
 GO
+
 /*
 8. Tasa de Morosidad Financiera mensual. Se calcula teniendo en cuenta el total 
-de importes adeudados sobre facturaci�n esperada en el mes. El monto adeudado se obtiene a partir de las facturas que no tengan pago registrado en dicho mes. 
+de importes adeudados sobre facturacion esperada en el mes. El monto adeudado se obtiene a partir de las facturas que no tengan pago registrado en dicho mes. 
 */
 CREATE TABLE LOS_LINDOS.BI_FACT_Morosidad_Mensual (
     anio                     INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
@@ -467,33 +467,33 @@ GO
 
 INSERT INTO LOS_LINDOS.BI_FACT_Morosidad_Mensual (anio, mes, monto_adeudado, facturacion_esperada)
 SELECT
-    YEAR(f.fecha_emision) AS anio_emision,
-    MONTH(f.fecha_emision) AS mes_emision,
-    SUM(CASE WHEN p.numero_factura IS NULL THEN f.importe_total ELSE 0 END) AS monto_adeudado,
-    SUM(f.importe_total) AS facturacion_esperada
+    YEAR(f.fecha_emision),
+    MONTH(f.fecha_emision),
+    SUM(CASE WHEN p.numero_factura IS NULL THEN f.importe_total ELSE 0 END),
+    SUM(f.importe_total)
 FROM LOS_LINDOS.Factura f
-    LEFT JOIN (SELECT DISTINCT numero_factura, YEAR(fecha)as anio, MONTH(fecha) as mes FROM LOS_LINDOS.PAGO) p
-ON p.numero_factura=f.numero AND p.anio=YEAR(f.fecha_emision) AND p.mes=MONTH(f.fecha_emision)
-WHERE YEAR(f.fecha_emision) BETWEEN 2019 AND 2025
+    LEFT JOIN LOS_LINDOS.PAGO p
+ON p.numero_factura=f.numero AND YEAR(p.fecha)=YEAR(f.fecha_emision) AND MONTH(p.fecha)=MONTH(f.fecha_emision)
 GROUP BY YEAR(f.fecha_emision), MONTH (f.fecha_emision)
-ORDER BY anio_emision, mes_emision;
+ORDER BY YEAR(f.fecha_emision), MONTH(f.fecha_emision);
 
 GO
 
 CREATE VIEW LOS_LINDOS.VISTA_Morosidad_Mensual AS
     SELECT
-        anio,
-        mes,
-        monto_adeudado,
-        facturacion_esperada
+        anio 'Año',
+        mes 'Mes',
+        monto_adeudado 'Monto adeudado',
+        facturacion_esperada 'Facturacion esperada',
+        monto_adeudado/facturacion_esperada 'Tasa de morosidad financiera'
     FROM LOS_LINDOS.BI_FACT_Morosidad_Mensual;
 GO
 
 
 /*
-9. Ingresos por categoria de cursos: Las 3 categor�as de cursos que generan mayores ingresos por sede, por anio.
+9. Ingresos por categoria de cursos: Las 3 categorias de cursos que generan mayores ingresos por sede, por anio.
 */
-CREATE TABLE LOS_LINDOS.  (
+CREATE TABLE LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria (
     anio                     INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
     codigo_sede              BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Sede(codigo_sede),
     codigo_categoria         BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria),
@@ -534,7 +534,7 @@ GO
 
 /*
 10. Indice de satisfaccion. indice de satisfaccion anual, segun rango etario de los
-profesores y sede. El indice de satisfaccion es igual a ((% satisfechos %insatisfechos) +100)/2.
+profesores y sede. El indice de satisfaccion es igual a ((% satisfechos - %insatisfechos) +100)/2.
 Teniendo en cuenta que 
 Satisfechos: Notas entre 7 y 10 
 Neutrales: Notas entre 5 y 6 
@@ -558,27 +558,23 @@ SELECT
     c.codigo_sede,
     re.codigo_rango,
     bs.codigo_bloque,
-    COUNT(*) / (SELECT COUNT(*) FROM LOS_LINDOS.Encuesta ee
+    CAST(COUNT(*) AS FLOAT) / (SELECT COUNT(*) FROM LOS_LINDOS.Encuesta ee
                             JOIN LOS_LINDOS.Respuesta rr ON rr.codigo_encuesta = ee.codigo
                             JOIN LOS_LINDOS.Curso cc ON cc.codigo = ee.codigo_curso
                             JOIN LOS_LINDOS.Profesor pp ON pp.codigo = cc.codigo_profesor
-                            JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno rere ON
-                                        (DATEDIFF (YEAR,pp.fecha_nacimiento,ee.fecha_registro)<25 AND rere.descripcion= '<25')
-                                        OR
+                            JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rere ON
                                         (DATEDIFF (YEAR,pp.fecha_nacimiento,ee.fecha_registro) BETWEEN 25 AND 35 AND rere.descripcion= '25-35')
                                         OR
                                         (DATEDIFF (YEAR,pp.fecha_nacimiento,ee.fecha_registro) BETWEEN 35 AND 50 AND rere.descripcion= '35-50')
                                         OR
                                         (DATEDIFF (YEAR,pp.fecha_nacimiento,ee.fecha_registro)>50 AND rere.descripcion= '>50') 
-                  WHERE cc.codigo_sede = c.codigo_sede AND rere.codigo_rango = re.codigo_rango 
-                  )
+                  WHERE YEAR(e.fecha_registro) = YEAR(ee.fecha_registro) AND cc.codigo_sede = c.codigo_sede AND rere.codigo_rango = re.codigo_rango 
+    )
 FROM LOS_LINDOS.Encuesta e
     JOIN LOS_LINDOS.Respuesta r ON r.codigo_encuesta = e.codigo
     JOIN LOS_LINDOS.Curso c ON c.codigo = e.codigo_curso
     JOIN LOS_LINDOS.Profesor p ON p.codigo = c.codigo_profesor
-    JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno re ON
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)<25 AND re.descripcion= '<25')
-    OR
+    JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor re ON
     (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 25 AND 35 AND re.descripcion= '25-35')
     OR
     (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 35 AND 50 AND re.descripcion= '35-50')
@@ -586,67 +582,83 @@ FROM LOS_LINDOS.Encuesta e
     (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)>50 AND re.descripcion= '>50')
     JOIN LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs ON r.respuesta >= bs.nota_minima AND r.respuesta<= bs.nota_maxima
 GROUP BY c.codigo_sede,YEAR(e.fecha_registro),re.codigo_rango, bs.codigo_bloque
+ORDER BY YEAR(e.fecha_registro), c.codigo_sede, re.codigo_rango, bs.codigo_bloque
 
---solucion 2
+GO
+
+CREATE VIEW LOS_LINDOS.VISTA_Indice_de_satisfaccion AS
+    SELECT
+    isa.anio 'Año',
+    s.nombre 'Sede',
+    rep.descripcion 'Rango etario de profesor',
+    ((isa.porcentaje - isa2.porcentaje)+100)/2 'Indice de Satisfaccion'
+    FROM LOS_LINDOS.BI_FACT_Indice_Satisfaccion isa
+        JOIN LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs ON bs.codigo_bloque = isa.codigo_bloque AND bs.descripcion = 'Satisfechos' -- hasta aca tengo todos los indices de satisfechos
+        JOIN LOS_LINDOS.BI_FACT_Indice_Satisfaccion isa2 ON isa.anio = isa2.anio AND isa.codigo_rango_profesor = isa2.codigo_rango_profesor AND isa.codigo_sede = isa2.codigo_sede
+        JOIN LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs2 ON bs2.codigo_bloque = isa2.codigo_bloque AND bs2.descripcion = 'Insatisfechos' -- joineo cada uno con el indice de instatisfechos en el mismo año, sede y rango de profesor
+        JOIN LOS_LINDOS.BI_DIMENSION_Sede s ON s.codigo_sede = isa.codigo_sede
+        JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rep ON rep.codigo_rango = isa.codigo_rango_profesor
+GO
+
+SELECT * FROM LOS_LINDOS.VISTA_Indice_de_satisfaccion
+
+/*
 
 INSERT INTO LOS_LINDOS.BI_FACT_Indice_Satisfaccion (anio,codigo_sede,codigo_rango_profesor,codigo_bloque,porcentaje)
-SELECT
-    YEAR(e.fecha_registro),
-    c.codigo_sede,
-    re.codigo_rango,
-    (SELECT bs.codigo_bloque FROM LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs WHERE bs.descripcion = 'Satisfechos'),
-    (COUNT( CASE WHEN r.respuesta >= 7 THEN 1 END))/COUNT(*)
-FROM LOS_LINDOS.Encuesta e
-    JOIN LOS_LINDOS.Respuesta r ON r.codigo_encuesta = e.codigo
-    JOIN LOS_LINDOS.Curso c ON c.codigo = e.codigo_curso
-    JOIN LOS_LINDOS.Profesor p ON p.codigo = c.codigo_profesor
-    JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno re ON
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)<25 AND re.descripcion= '<25')
-    OR
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 25 AND 35 AND re.descripcion= '25-35')
-    OR
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 35 AND 50 AND re.descripcion= '35-50')
-    OR
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)>50 AND re.descripcion= '>50')
-GROUP BY c.codigo_sede,YEAR(e.fecha_registro),re.codigo_rango
+    SELECT
+        YEAR(e.fecha_registro),
+        c.codigo_sede,
+        re.codigo_rango,
+        (SELECT bs.codigo_bloque FROM LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs WHERE bs.descripcion = 'Satisfechos'),
+        CAST ((COUNT( CASE WHEN r.respuesta >= 7 THEN 1 END)) AS FLOAT)/COUNT(*)
+    FROM LOS_LINDOS.Encuesta e
+        JOIN LOS_LINDOS.Respuesta r ON r.codigo_encuesta = e.codigo
+        JOIN LOS_LINDOS.Curso c ON c.codigo = e.codigo_curso
+        JOIN LOS_LINDOS.Profesor p ON p.codigo = c.codigo_profesor
+        JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor re ON
+        (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 25 AND 35 AND re.descripcion= '25-35')
+        OR
+        (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 35 AND 50 AND re.descripcion= '35-50')
+        OR
+        (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)>50 AND re.descripcion= '>50')
+    GROUP BY c.codigo_sede,YEAR(e.fecha_registro),re.codigo_rango
 UNION
-SELECT
-    YEAR(e.fecha_registro),
-    c.codigo_sede,
-    re.codigo_rango,
-    (SELECT bs.codigo_bloque FROM LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs WHERE bs.descripcion = 'Neutrales'),
-    (COUNT( CASE WHEN r.respuesta >= 5 and r.respuesta <= 6 THEN 1 END))/COUNT(*)
-FROM LOS_LINDOS.Encuesta e
-    JOIN LOS_LINDOS.Respuesta r ON r.codigo_encuesta = e.codigo
-    JOIN LOS_LINDOS.Curso c ON c.codigo = e.codigo_curso
-    JOIN LOS_LINDOS.Profesor p ON p.codigo = c.codigo_profesor
-    JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno re ON
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)<25 AND re.descripcion= '<25')
-    OR
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 25 AND 35 AND re.descripcion= '25-35')
-    OR
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 35 AND 50 AND re.descripcion= '35-50')
-    OR
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)>50 AND re.descripcion= '>50')
+    SELECT
+        YEAR(e.fecha_registro),
+        c.codigo_sede,
+        re.codigo_rango,
+        (SELECT bs.codigo_bloque FROM LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs WHERE bs.descripcion = 'Neutrales'),
+        CAST ((COUNT( CASE WHEN r.respuesta >= 5 and r.respuesta <= 6 THEN 1 END)) AS FLOAT)/COUNT(*)
+    FROM LOS_LINDOS.Encuesta e
+        JOIN LOS_LINDOS.Respuesta r ON r.codigo_encuesta = e.codigo
+        JOIN LOS_LINDOS.Curso c ON c.codigo = e.codigo_curso
+        JOIN LOS_LINDOS.Profesor p ON p.codigo = c.codigo_profesor
+        JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor re ON
+        (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 25 AND 35 AND re.descripcion= '25-35')
+        OR
+        (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 35 AND 50 AND re.descripcion= '35-50')
+        OR
+        (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)>50 AND re.descripcion= '>50')
+    GROUP BY c.codigo_sede,YEAR(e.fecha_registro),re.codigo_rango
 UNION
-SELECT
-    YEAR(e.fecha_registro),
-    c.codigo_sede,
-    re.codigo_rango,
-    (SELECT bs.codigo_bloque FROM LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs WHERE bs.descripcion = 'Insatisfechos'),
-    (COUNT( CASE WHEN r.respuesta <= 4 THEN 1 END))/COUNT(*)
-FROM LOS_LINDOS.Encuesta e
-    JOIN LOS_LINDOS.Respuesta r ON r.codigo_encuesta = e.codigo
-    JOIN LOS_LINDOS.Curso c ON c.codigo = e.codigo_curso
-    JOIN LOS_LINDOS.Profesor p ON p.codigo = c.codigo_profesor
-    JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno re ON
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)<25 AND re.descripcion= '<25')
-    OR
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 25 AND 35 AND re.descripcion= '25-35')
-    OR
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 35 AND 50 AND re.descripcion= '35-50')
-    OR
-    (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)>50 AND re.descripcion= '>50')
+    SELECT
+        YEAR(e.fecha_registro),
+        c.codigo_sede,
+        re.codigo_rango,
+        (SELECT bs.codigo_bloque FROM LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs WHERE bs.descripcion = 'Insatisfechos'),
+        CAST ((COUNT( CASE WHEN r.respuesta <= 4 THEN 1 END)) AS FLOAT)/COUNT(*)
+    FROM LOS_LINDOS.Encuesta e
+        JOIN LOS_LINDOS.Respuesta r ON r.codigo_encuesta = e.codigo
+        JOIN LOS_LINDOS.Curso c ON c.codigo = e.codigo_curso
+        JOIN LOS_LINDOS.Profesor p ON p.codigo = c.codigo_profesor
+        JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor re ON
+        (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 25 AND 35 AND re.descripcion= '25-35')
+        OR
+        (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro) BETWEEN 35 AND 50 AND re.descripcion= '35-50')
+        OR
+        (DATEDIFF (YEAR,p.fecha_nacimiento,e.fecha_registro)>50 AND re.descripcion= '>50')
+    GROUP BY c.codigo_sede,YEAR(e.fecha_registro),re.codigo_rango
+*/
 
 --El orden es así
 -- Creacion de dimension
