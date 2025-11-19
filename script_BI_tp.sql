@@ -415,34 +415,39 @@ GO
 CREATE TABLE LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino (
     anio                            INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
     cuatrimestre                    INT NOT NULL CHECK (cuatrimestre IN (1,2)),
+    medio_de_pago                   BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Medio_Pago(codigo_medio_pago),
     cantidad_pagos_fuera_termino    INT NOT NULL DEFAULT 0,
     cantidad_total_pagos            INT NOT NULL DEFAULT 0,
-    PRIMARY KEY (anio, cuatrimestre)
+    PRIMARY KEY (anio, cuatrimestre,medio_de_pago)
 );
 GO
 
 INSERT INTO LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino
 SELECT
     YEAR(p.fecha),
-    CASE WHEN MONTH(p.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END,
+    CASE WHEN MONTH(p.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END cuatrimestre,
+    p.codigo_medio_pago,
     COUNT(CASE WHEN p.fecha>f.fecha_vencimiento THEN 1 ELSE NULL END),
     COUNT(*)
 FROM LOS_LINDOS.Pago p
-        JOIN LOS_LINDOS.Factura f ON f.numero=p.numero_factura
-GROUP BY YEAR(p.fecha), CASE WHEN MONTH(p.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END;
+        JOIN LOS_LINDOS.Factura f ON f.numero= p.numero_factura
+GROUP BY YEAR(p.fecha), CASE WHEN MONTH(p.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END, p.codigo_medio_pago
+ORDER BY YEAR(p.fecha), cuatrimestre, p.codigo_medio_pago;
 
 GO
 
 CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Pagos_Fuera_Termino AS
 SELECT
-    anio 'Año',
-    cuatrimestre 'Cuatrimestre',
+    f.anio 'Año',
+    f.cuatrimestre 'Cuatrimestre',
+    mp.descripcion 'Medio de pago',
     CASE WHEN cantidad_total_pagos >0
     THEN
         (CAST(cantidad_pagos_fuera_termino AS FLOAT)/cantidad_total_pagos)
     ELSE 0
     END AS 'Porcentaje de pagos fuera de término'
-FROM LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino;
+FROM LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino f
+        JOIN LOS_LINDOS.BI_DIMENSION_Medio_Pago mp ON mp.codigo_medio_pago = f.medio_de_pago
 
 GO
 
@@ -450,6 +455,7 @@ GO
 8. Tasa de Morosidad Financiera mensual. Se calcula teniendo en cuenta el total 
 de importes adeudados sobre facturacion esperada en el mes. El monto adeudado se obtiene a partir de las facturas que no tengan pago registrado en dicho mes. 
 */
+
 CREATE TABLE LOS_LINDOS.BI_FACT_Morosidad_Mensual (
     anio                     INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
     mes                      INT NOT NULL CHECK (mes BETWEEN 1 AND 12),
