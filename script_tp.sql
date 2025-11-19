@@ -95,6 +95,7 @@ CREATE TABLE LOS_LINDOS.Alumno (
     nombre NVARCHAR(255),
     apellido NVARCHAR(255),
     dni BIGINT,
+    fecha_nacimiento DATETIME2(6)
     codigo_direccion BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Direccion(codigo),
     codigo_localidad BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Localidad(codigo),
     codigo_provincia BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Provincia(codigo),
@@ -427,12 +428,13 @@ GO
 -- alumnos
 CREATE PROCEDURE LOS_LINDOS.Migrar_Alumnos AS
 BEGIN
-INSERT INTO Alumno (legajo,nombre,apellido, dni,telefono, codigo_direccion, codigo_localidad,  codigo_provincia)
+INSERT INTO Alumno (legajo,nombre,apellido, dni,fecha_nacimiento, telefono, codigo_direccion, codigo_localidad,  codigo_provincia)
 SELECT DISTINCT
     m.Alumno_Legajo,
     m.Alumno_Nombre,
     m.Alumno_Apellido,
     m.Alumno_Dni,
+    m.Alumno_FechaNacimiento,
     m.Alumno_Telefono,
     d.codigo,
     l.codigo,
