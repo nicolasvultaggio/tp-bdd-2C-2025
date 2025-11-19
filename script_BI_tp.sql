@@ -361,17 +361,19 @@ GROUP BY
     r.codigo_rango
 GO
 
-CREATE VIEW LOS_LINDOS.VISTA_Nota_Promedio_Finales AS
-    SELECT
-        anio,
-        cuatrtimestre,
-        codigo_categoria,
-        codigo_rango_alumno,
-        promedio_nota
-        FROM LOS_LINDOS.BI_FACT_Nota_Promedio_Finales;
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Nota_Promedio_Finales AS
+    SELECT 
+        pf.anio,
+        pf.cuatrimestre,
+        c.nombre,
+        rea.descripcion rango_etario_alumno,
+        pf.promedio_nota
+        FROM LOS_LINDOS.BI_FACT_Nota_Promedio_Finales pf 
+                JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso c on c.codigo_categoria=pf.codigo_categoria
+                JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno rea on rea.codigo_rango=pf.codigo_rango_alumno
 GO
 
-
+SELECT * FROM LOS_LINDOS.VISTA_Nota_Promedio_Finales
 
 /*
 6. Tasa de ausentismo finales: Porcentaje de ausentes a finales (sobre la cantidad de inscriptos) por semestre por sede.
@@ -402,15 +404,15 @@ GO
 
 CREATE VIEW LOS_LINDOS.VISTA_Ausentismo_Finales AS
 SELECT
-    anio,
-    cuatrimestre,
-    codigo_sede,
+    taf.anio,
+    taf.cuatrimestre,
+    s.nombre,
     CASE WHEN cantidad_inscriptos>0 THEN
         (CAST(cantidad_ausentes AS FLOAT)/cantidad_inscriptos)*100
     ELSE 0
-    END cantidad_inscriptos
-FROM LOS_LINDOS.BI_FACT_Ausentismo_Finales;
-
+    END tasa_de_ausentismo_a_finales
+FROM LOS_LINDOS.BI_FACT_Ausentismo_Finales taf
+        JOIN LOS_LINDOS.BI_DIMENSION_Sede s ON s.codigo_sede = taf.codigo_sede
 GO
                                                                                /*
 7. Desv�o de pagos: Porcentaje de pagos realizados fuera de t�rmino por semestre.
