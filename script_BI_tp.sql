@@ -1,7 +1,5 @@
 USE GD2C2025;
 GO
-
-
 -- Dimensiones
 
 CREATE TABLE LOS_LINDOS.BI_DIMENSION_Sede (
@@ -135,6 +133,7 @@ SELECT
     GROUP BY YEAR(ic.fecha), c.codigo_sede, c.codigo_categoria, c.codigo_turno
 GO
 
+/*
 CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Inscripciones_Por_Categoria_Turno_TOP3
 AS
 SELECT 
@@ -161,12 +160,11 @@ WHERE EXISTS (
     ) top3
     WHERE top3.codigo_categoria = f.codigo_categoria AND top3.codigo_turno = f.codigo_turno
 )
-
-
 GO
 
+*/
 -- Poner explicación en hoja de justificaciones
-CREATE OR ALTER VIEW LOS_LINDOS.vw_Top3_Categorias_Turnos_Por_Anio_Sede
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Inscripciones_Por_Categoria_Turno_TOP3
 AS
 WITH RankedCombinations AS (
     SELECT 
@@ -187,12 +185,12 @@ WITH RankedCombinations AS (
     JOIN LOS_LINDOS.BI_DIMENSION_Turno t ON t.codigo_turno = f.codigo_turno
 )
 SELECT 
-    anio,
-    sede_nombre AS sede,
-    categoria_nombre AS categoria,
-    turno_nombre AS turno,
-    cantidad_inscripciones AS inscriptos,
-    ranking AS posicion_top
+    anio 'Año',
+    sede_nombre 'Sede',
+    categoria_nombre 'Categoria',
+    turno_nombre 'Turno',
+    cantidad_inscripciones 'Cantidad de inscripciones',
+    ranking 'Ranking'
 FROM RankedCombinations
 WHERE ranking <= 3;
 GO
@@ -225,17 +223,16 @@ FROM LOS_LINDOS.Inscripcion_Curso i
 GROUP BY YEAR(i.fecha), MONTH(i.fecha), c.codigo_sede;
 GO
 
-CREATE VIEW LOS_LINDOS.VISTA_Rechazos_Inscripciones AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Rechazos_Inscripciones AS
     SELECT
-        f.anio,
-        f.mes,
-        f.codigo_sede,
-        s.nombre,
-        f.cantidad_inscripciones_rechazadas,
-        f.cantidad_inscripciones_total,
+        f.anio 'Año',
+        f.mes 'Mes',
+        s.nombre 'Sede',
+        f.cantidad_inscripciones_rechazadas 'Cantidad de inscripciones rechazadas',
+        f.cantidad_inscripciones_total 'Cantidad total de inscripciones',
         CASE WHEN f.cantidad_inscripciones_total = 0 THEN 0
         ELSE CAST (f.cantidad_inscripciones_rechazadas AS DECIMAL (10,4))/f.cantidad_inscripciones_total
-        END AS taza_de_rechazo
+        END AS 'Taza de rechazo'
 FROM LOS_LINDOS.BI_FACT_Rechazos_Inscripciones f
 JOIN LOS_LINDOS.BI_DIMENSION_Sede s ON s.codigo_sede=f.codigo_sede
 GO
@@ -269,20 +266,18 @@ SELECT DISTINCT
 FROM LOS_LINDOS.Curso c group by YEAR(c.fecha_inicio), c.codigo_sede
 GO
 
-CREATE VIEW LOS_LINDOS.VISTA_Desempenio_Cursada AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Desempenio_Cursada AS
     SELECT
-        dc.anio,
-        s.nombre,
-        dc.cantidad_aprobados,
-        cantidad_cursadas,
+        dc.anio 'Año',
+        s.nombre 'Sede',
+        dc.cantidad_aprobados 'Cantidad de aprobados',
+        cantidad_cursadas 'Cantidad de cursadas',
         CASE WHEN cantidad_cursadas = 0 THEN 0
         ELSE CAST (cantidad_aprobados AS DECIMAL(10,4)) / CAST(cantidad_cursadas AS DECIMAL(10,4))
-        END AS porcentaje_de_aprobados
+        END 'Porcentaje de aprobados'
 FROM LOS_LINDOS.BI_FACT_Desempenio_Cursada dc
         JOIN LOS_LINDOS.BI_DIMENSION_Sede s ON s.codigo_sede = dc.codigo_sede;
 GO
-
-SELECT * FROM LOS_LINDOS.VISTA_Desempenio_Cursada
 
 /*
 4.Tiempo promedio de finalizacion de curso: 
@@ -310,11 +305,11 @@ JOIN LOS_LINDOS.Examen_Final_de_Alumno fa ON fa.codigo_final=f.codigo WHERE fa.n
 GROUP BY YEAR(c.fecha_inicio), c.codigo_categoria
 GO
 
-CREATE VIEW LOS_LINDOS.VISTA_Tiempo_Promedio_Finalizacion AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Tiempo_Promedio_Finalizacion AS
     SELECT
-        anio,
-        c.nombre,
-        tiempo_promedio_dias
+        anio 'Año',
+        c.nombre 'Categoría de curso',
+        tiempo_promedio_dias 'Tiempo promedio de días'
     FROM LOS_LINDOS.BI_FACT_Tiempo_Promedio_Finalizacion tpf
             JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso c on c.codigo_categoria = tpf.codigo_categoria
 GO
@@ -340,7 +335,7 @@ SELECT
     CASE WHEN MONTH(f.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END,
     c.codigo_categoria,
     r.codigo_rango,
-    AVG(fa.nota) AS promedio_nota
+    AVG(fa.nota) AS promedio_nota --> el promedio es entre las notas presentes, AVG ya se encarga de ignorar las notas no presentes, si nadie se presentó, queda el promedio en null
 FROM LOS_LINDOS.Examen_Final_de_Alumno fa
 JOIN LOS_LINDOS.Examen_Final f ON f.codigo=fa.codigo_final
 JOIN LOS_LINDOS.Curso c on c.codigo=f.codigo_curso
@@ -353,6 +348,7 @@ JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno r ON
     (DATEDIFF (YEAR,a.fecha_nacimiento,f.fecha) BETWEEN 35 AND 50 AND r.descripcion= '35-50')
     OR
     (DATEDIFF (YEAR,a.fecha_nacimiento,f.fecha)>50 AND r.descripcion= '>50')
+--WHERE fa.presente = 1 ---> comentado porque quiero que el promedio aparezca en NULL todos los inscriptos faltaron (no hay notas para promediar)
 GROUP BY
     YEAR(f.fecha),
     CASE WHEN MONTH(f.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END,
@@ -362,17 +358,16 @@ GO
 
 CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Nota_Promedio_Finales AS
     SELECT 
-        pf.anio,
-        pf.cuatrimestre,
-        c.nombre,
-        rea.descripcion rango_etario_alumno,
-        pf.promedio_nota
+        pf.anio 'Año',
+        pf.cuatrimestre 'Cuatrimestre',
+        c.nombre 'Categoría de curso',
+        rea.descripcion 'Rango etario de alumno',
+        pf.promedio_nota 'Promedio de notas de finales'
         FROM LOS_LINDOS.BI_FACT_Nota_Promedio_Finales pf 
                 JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso c on c.codigo_categoria=pf.codigo_categoria
                 JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno rea on rea.codigo_rango=pf.codigo_rango_alumno
 GO
 
-SELECT * FROM LOS_LINDOS.VISTA_Nota_Promedio_Finales
 
 /*
 6. Tasa de ausentismo finales: Porcentaje de ausentes a finales (sobre la cantidad de inscriptos) por semestre por sede.
@@ -401,15 +396,15 @@ GROUP BY YEAR(f.fecha), CASE WHEN MONTH(f.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 E
 
 GO
 
-CREATE VIEW LOS_LINDOS.VISTA_Ausentismo_Finales AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Ausentismo_Finales AS
 SELECT
-    taf.anio,
-    taf.cuatrimestre,
-    s.nombre,
+    taf.anio 'Año',
+    taf.cuatrimestre 'Cuatrimestre',
+    s.nombre 'Sede',
     CASE WHEN cantidad_inscriptos>0 THEN
-        (CAST(cantidad_ausentes AS FLOAT)/cantidad_inscriptos)*100
-    ELSE 0
-    END tasa_de_ausentismo_a_finales
+        (CAST(cantidad_ausentes AS FLOAT)/cantidad_inscriptos)
+    ELSE 0 
+    END 'Tasa de ausentismo de finales'
 FROM LOS_LINDOS.BI_FACT_Ausentismo_Finales taf
         JOIN LOS_LINDOS.BI_DIMENSION_Sede s ON s.codigo_sede = taf.codigo_sede
 GO
@@ -438,17 +433,16 @@ GROUP BY YEAR(p.fecha), CASE WHEN MONTH(p.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 E
 
 GO
 
-CREATE VIEW LOS_LINDOS.VISTA_Pagos_Fuera_Termino AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Pagos_Fuera_Termino AS
 SELECT
-    anio,
-    cuatrimestre,
+    anio 'Año',
+    cuatrimestre 'Cuatrimestre',
     CASE WHEN cantidad_total_pagos >0
     THEN
-        (CAST(cantidad_pagos_fuera_termino AS FLOAT)/cantidad_total_pagos)*100
+        (CAST(cantidad_pagos_fuera_termino AS FLOAT)/cantidad_total_pagos)
     ELSE 0
-    END AS porcentaje_fuera_de_termino
+    END AS 'Porcentaje de pagos fuera de término'
 FROM LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino;
-
 
 GO
 
@@ -479,7 +473,7 @@ ORDER BY YEAR(f.fecha_emision), MONTH(f.fecha_emision);
 
 GO
 
-CREATE VIEW LOS_LINDOS.VISTA_Morosidad_Mensual AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Morosidad_Mensual AS
     SELECT
         anio 'Año',
         mes 'Mes',
@@ -488,7 +482,6 @@ CREATE VIEW LOS_LINDOS.VISTA_Morosidad_Mensual AS
         monto_adeudado/facturacion_esperada 'Tasa de morosidad financiera'
     FROM LOS_LINDOS.BI_FACT_Morosidad_Mensual;
 GO
-
 
 /*
 9. Ingresos por categoria de cursos: Las 3 categorias de cursos que generan mayores ingresos por sede, por anio.
@@ -502,6 +495,7 @@ CREATE TABLE LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria (
 );
 GO
 
+
 INSERT INTO LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria
 SELECT
     YEAR(c.fecha_inicio),
@@ -509,27 +503,93 @@ SELECT
     c.codigo_categoria,
     SUM(df.importe)
 FROM LOS_LINDOS.Curso c
-JOIN LOS_LINDOS.Detalle_Factura df ON c.codigo=df.codigo_curso
+    JOIN LOS_LINDOS.Detalle_Factura df ON c.codigo=df.codigo_curso
 GROUP BY YEAR(c.fecha_inicio), c.codigo_sede, c.codigo_categoria;
-
 GO
-
-CREATE VIEW LOS_LINDOS.VISTA_Ingresos_Por_Categoria AS
+/*
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Ingresos_Por_Categoria AS
 SELECT
     i.anio,
-    i.codigo_sede,
-    i.codigo_categoria,
+    s.nombre sede_nombre,
+    c.nombre categoria_nombre,
     i.ingresos
 FROM LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria i
+        JOIN LOS_LINDOS.BI_DIMENSION_Sede s ON s.codigo_sede = i.codigo_sede
+        JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso c ON c.codigo_categoria = i.codigo_categoria
 WHERE (
       SELECT
           COUNT(*)
       FROM LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria i2
       WHERE i2.anio=i.anio AND i2.codigo_sede=i.codigo_sede AND i2.ingresos>i.ingresos
       ) < 3
-ORDER BY i.anio, i.codigo_sede, i.codigo_categoria;
+--ORDER BY i.anio, i.codigo_sede, i.codigo_categoria;
 
 GO
+*/
+
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Ingresos_Por_Categoria
+AS
+WITH RankedCategorias AS (
+    SELECT 
+        f.anio,
+        s.nombre sede_nombre,
+        cat.nombre categoria_nombre,
+        f.ingresos,
+        ROW_NUMBER() OVER (
+            PARTITION BY f.anio, f.codigo_sede 
+            ORDER BY f.ingresos DESC, 
+                     cat.nombre ASC
+        ) AS ranking
+    FROM LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria f
+    JOIN LOS_LINDOS.BI_DIMENSION_Sede s 
+        ON s.codigo_sede = f.codigo_sede
+    JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso cat 
+        ON cat.codigo_categoria = f.codigo_categoria
+)
+SELECT 
+    anio 'Año',
+    sede_nombre 'Sede',
+    categoria_nombre 'Categoría de curso',
+    ingresos 'Ingresos',
+    ranking 'Ranking'
+FROM RankedCategorias
+WHERE ranking <= 3;
+GO
+
+
+/*
+CREATE OR ALTER VIEW LOS_LINDOS.vw_Top3_Categorias_Ingresos_Subquery
+AS
+SELECT 
+    f.anio,
+    s.nombre AS sede,
+    cat.nombre AS categoria,
+    f.ingresos
+FROM LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria f
+JOIN LOS_LINDOS.BI_DIMENSION_Sede s 
+    ON s.codigo_sede = f.codigo_sede
+JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso cat 
+    ON cat.codigo_categoria = f.codigo_categoria
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT TOP 3 
+               codigo_categoria
+        FROM LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria f2
+        WHERE f2.anio = f.anio 
+          AND f2.codigo_sede = f.codigo_sede
+        ORDER BY f2.ingresos DESC,
+                 f2.codigo_categoria ASC   -- desempate determinístico
+    ) AS top3
+    WHERE top3.codigo_categoria = f.codigo_categoria
+)
+--ORDER BY 
+--    f.anio DESC, 
+--    sede, 
+--    f.ingresos DESC;
+GO
+*/
+
 
 
 /*
@@ -586,7 +646,7 @@ ORDER BY YEAR(e.fecha_registro), c.codigo_sede, re.codigo_rango, bs.codigo_bloqu
 
 GO
 
-CREATE VIEW LOS_LINDOS.VISTA_Indice_de_satisfaccion AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Indice_de_satisfaccion AS
     SELECT
     isa.anio 'Año',
     s.nombre 'Sede',
@@ -599,8 +659,6 @@ CREATE VIEW LOS_LINDOS.VISTA_Indice_de_satisfaccion AS
         JOIN LOS_LINDOS.BI_DIMENSION_Sede s ON s.codigo_sede = isa.codigo_sede
         JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rep ON rep.codigo_rango = isa.codigo_rango_profesor
 GO
-
-SELECT * FROM LOS_LINDOS.VISTA_Indice_de_satisfaccion
 
 /*
 
@@ -667,5 +725,129 @@ UNION
 -- Migracion de tabla de hechos
 -- Creacion de vista para esa tabla de hechos
 
+-- Todas las vistas
 
 
+--1
+SELECT * FROM LOS_LINDOS.VISTA_Inscripciones_Por_Categoria_Turno_TOP3;
+--2
+SELECT * FROM  LOS_LINDOS.VISTA_Rechazos_Inscripciones;
+--3
+SELECT * FROM LOS_LINDOS.VISTA_Desempenio_Cursada;
+--4
+SELECT * FROM LOS_LINDOS.VISTA_Tiempo_Promedio_Finalizacion;
+--5
+SELECT * FROM LOS_LINDOS.VISTA_Nota_Promedio_Finales;
+--6
+SELECT * FROM LOS_LINDOS.VISTA_Ausentismo_Finales;
+--7
+SELECT * FROM LOS_LINDOS.VISTA_Pagos_Fuera_Termino;
+--8
+SELECT * FROM LOS_LINDOS.VISTA_Morosidad_Mensual
+--9
+SELECT * FROM LOS_LINDOS.VISTA_Ingresos_Por_Categoria
+--10
+SELECT * FROM LOS_LINDOS.VISTA_Indice_de_satisfaccion
+
+
+
+/*
+
+
+
+
+
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Inscripciones_Por_Categoria_Turno_TOP3' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Inscripciones_Por_Categoria_Turno_TOP3;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Rechazos_Inscripciones' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Rechazos_Inscripciones;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Desempenio_Cursada' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Desempenio_Cursada;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Tiempo_Promedio_Finalizacion' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Tiempo_Promedio_Finalizacion;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Nota_Promedio_Finales' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Nota_Promedio_Finales;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Ausentismo_Finales' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Ausentismo_Finales;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Pagos_Fuera_Termino' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Pagos_Fuera_Termino;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Morosidad_Mensual' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Morosidad_Mensual;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Ingresos_Por_Categoria' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Ingresos_Por_Categoria;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Indice_de_satisfaccion' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.VISTA_Indice_de_satisfaccion;
+GO
+
+
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Inscripciones_Por_Categoria_Turno', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Inscripciones_Por_Categoria_Turno;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Rechazos_Inscripciones', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Rechazos_Inscripciones;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Desempenio_Cursada', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Desempenio_Cursada;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Tiempo_Promedio_Finalizacion', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Tiempo_Promedio_Finalizacion;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Nota_Promedio_Finales', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Nota_Promedio_Finales;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Ausentismo_Finales', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Ausentismo_Finales;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Morosidad_Mensual', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Morosidad_Mensual;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_FACT_Indice_Satisfaccion', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_FACT_Indice_Satisfaccion;
+GO
+
+-- Dimensiones (las que tienen PK referenciadas por las tablas de hechos)
+IF OBJECT_ID('LOS_LINDOS.BI_DIMENSION_Sede', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_DIMENSION_Sede;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_DIMENSION_Turno', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_DIMENSION_Turno;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_DIMENSION_Categoria_Curso', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_DIMENSION_Categoria_Curso;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_DIMENSION_Medio_Pago', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_DIMENSION_Medio_Pago;
+GO
+IF OBJECT_ID('LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion', 'U') IS NOT NULL
+    DROP TABLE LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion;
+GO
+
+PRINT 'Todos los objetos BI han sido eliminados. Ya puedes volver a ejecutar el script completo.';
+GO
+
+
+
+
+
+*/
