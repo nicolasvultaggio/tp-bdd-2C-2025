@@ -95,7 +95,7 @@ CREATE TABLE LOS_LINDOS.Alumno (
     nombre NVARCHAR(255),
     apellido NVARCHAR(255),
     dni BIGINT,
-    fecha_nacimiento DATETIME2(6)
+    fecha_nacimiento DATETIME2(6),
     codigo_direccion BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Direccion(codigo),
     codigo_localidad BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Localidad(codigo),
     codigo_provincia BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.Provincia(codigo),
@@ -903,8 +903,6 @@ END CATCH
 GO
 
 
-select * from LOS_LINDOS.Respuesta
-
 /*
 
 
@@ -976,3 +974,4 @@ DROP SCHEMA IF EXISTS LOS_LINDOS;
 GO
 
 */
+
