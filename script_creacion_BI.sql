@@ -733,6 +733,10 @@ UNION
 
 -- Todas las vistas
 
+/*
+
+-- CONSULTAS A TODAS LAS VISTAS YA PREPARADAS:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 --1
 SELECT * FROM LOS_LINDOS.VISTA_Inscripciones_Por_Categoria_Turno_TOP3;
@@ -755,11 +759,11 @@ SELECT * FROM LOS_LINDOS.VISTA_Ingresos_Por_Categoria
 --10
 SELECT * FROM LOS_LINDOS.VISTA_Indice_de_satisfaccion
 
-
+*/
 
 /*
 
-
+EN CASO DE QUERER REEJECUTAR TODO EL SCRIPT, UTILIZAR PARA BORRAR:
 
 
 
@@ -792,6 +796,15 @@ IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Ingresos_Por_Categoria' A
 GO
 IF EXISTS (SELECT * FROM sys.views WHERE name = 'VISTA_Indice_de_satisfaccion' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
     DROP VIEW LOS_LINDOS.VISTA_Indice_de_satisfaccion;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_Top3_Categorias_Ingresos_Por_Anio_Sede' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.vw_Top3_Categorias_Ingresos_Por_Anio_Sede;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_Top3_Categorias_Ingresos_Subquery' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.vw_Top3_Categorias_Ingresos_Subquery;
+GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_Top3_Categorias_Turnos_Por_Anio_Sede' AND schema_id = SCHEMA_ID('LOS_LINDOS'))
+    DROP VIEW LOS_LINDOS.vw_Top3_Categorias_Turnos_Por_Anio_Sede;
 GO
 
 
