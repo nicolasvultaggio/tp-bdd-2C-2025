@@ -802,92 +802,92 @@ GO
 BEGIN TRY
     BEGIN TRANSACTION;
 
-    EXEC LOS_LINDOS.Migrar_Estados;
+    EXEC LOS_LINDOS.Migrar_Estados;                     --> Obtiene todos los posibles estados que puede tener una inscripcion
     PRINT 'Migrar_Estados completed successfully.';
     
-    EXEC LOS_LINDOS.Migrar_Dia_Semana;
-    PRINT 'Migrar_Dia_Semana completed successfully.';
+    EXEC LOS_LINDOS.Migrar_Dia_Semana;                  --> Obtiene todos los posibles días de la semana
+    PRINT 'Migrar_Dia_Semana completed successfully.'; 
     
-    EXEC LOS_LINDOS.Migrar_Categorias;
+    EXEC LOS_LINDOS.Migrar_Categorias;                  --> Obtiene todas las categorías de cursos
     PRINT 'Migrar_Categorias completed successfully.';
     
-    EXEC LOS_LINDOS.Migrar_Turnos;
+    EXEC LOS_LINDOS.Migrar_Turnos;                      --> Obtiene todos los turnos posibles que puede tener un curso
     PRINT 'Migrar_Turnos completed successfully.';
     
-    EXEC LOS_LINDOS.Migrar_Instituciones;
+    EXEC LOS_LINDOS.Migrar_Instituciones;               --> Obtiene todas las instituciones detectadas
     PRINT 'Migrar_Instituciones completed successfully.';
-    
-    EXEC LOS_LINDOS.Migrar_Provincias;
+   
+    EXEC LOS_LINDOS.Migrar_Provincias;                  --> Obtiene todas las provincias detectadas (tanto de las sedes, profesores y alumnos)
     PRINT 'Migrar_Provincias completed successfully.';
     
-    EXEC LOS_LINDOS.Migrar_Localidades;
+    EXEC LOS_LINDOS.Migrar_Localidades;                 --> Obtiene todas las localidades detectadas (tanto de las sedes, profesores y alumnos)
     PRINT 'Migrar_Localidades completed successfully.';
     
     EXEC LOS_LINDOS.Migrar_Direcciones;
-    PRINT 'Migrar_Direcciones completed successfully.';
+    PRINT 'Migrar_Direcciones completed successfully.'; --> Obtengo todas las direcciones detectadas (tanto de las sedes, profesores y alumnos)
     
     EXEC LOS_LINDOS.Migrar_Medio_Pago;
-    PRINT 'Migrar_Medio_Pago completed successfully.';
+    PRINT 'Migrar_Medio_Pago completed successfully.';  --> Obtiene todos los medios de pago detectdos
     
     EXEC LOS_LINDOS.Migrar_Preguntas;
-    PRINT 'Migrar_Preguntas completed successfully.';
+    PRINT 'Migrar_Preguntas completed successfully.';   ---> Obtiene todas las preguntas detectadas en el sistema
     
     EXEC LOS_LINDOS.Migrar_Sedes;
-    PRINT 'Migrar_Sedes completed successfully.';
+    PRINT 'Migrar_Sedes completed successfully.';       --> Normaliza la información de las sedes en una sola tabla
     
     EXEC LOS_LINDOS.Migrar_Alumnos;
-    PRINT 'Migrar_Alumnos completed successfully.';
+    PRINT 'Migrar_Alumnos completed successfully.';     --> Lleva todos los alumnos detectados a una sola tabla
     
     EXEC LOS_LINDOS.Migrar_Profesores;
-    PRINT 'Migrar_Profesores completed successfully.';
+    PRINT 'Migrar_Profesores completed successfully.';     --> Lleva todos los profesores detectados a una sola tabla
     
     EXEC LOS_LINDOS.Migrar_Cursos;
-    PRINT 'Migrar_Cursos completed successfully.';
+    PRINT 'Migrar_Cursos completed successfully.';          --> Lleva todos los cursos detectados a una sola tabla
     
     EXEC LOS_LINDOS.Migrar_Inscripciones_Cursos;
-    PRINT 'Migrar_Inscripciones_Cursos completed successfully.';
+    PRINT 'Migrar_Inscripciones_Cursos completed successfully.';    --> Lleva todas las inscripciones de cursos detectadas a una sola tabla
     
     EXEC LOS_LINDOS.Migrar_Estado_de_Inscripcion;
-    PRINT 'Migrar_Estado_de_Inscripcion completed successfully.';
+    PRINT 'Migrar_Estado_de_Inscripcion completed successfully.';   -->  Genera una tabla que registre el estado en el que está cada inscripcion (los posibles estados son los de la tabla Estado)
     
     EXEC LOS_LINDOS.Migrar_Facturas;
-    PRINT 'Migrar_Facturas completed successfully.';
+    PRINT 'Migrar_Facturas completed successfully.';                --> Obtiene todas las facturas detectadas y las pone en una sola tabla
     
     EXEC LOS_LINDOS.Migrar_Curso_x_Alumno;
-    PRINT 'Migrar_Curso_x_Alumno completed successfully.';
+    PRINT 'Migrar_Curso_x_Alumno completed successfully.';          --> Representa una "cursada" de un alumno para un curso
     
     EXEC LOS_LINDOS.Migrar_Curso_x_Dia;
-    PRINT 'Migrar_Curso_x_Dia completed successfully.';
+    PRINT 'Migrar_Curso_x_Dia completed successfully.';             --> Tabla intermedia para la relacion MANY TO MANY de Cursos y Días de la semana
     
     EXEC LOS_LINDOS.Migrar_Trabajo_Practico;
-    PRINT 'Migrar_Trabajo_Practico completed successfully.';
+    PRINT 'Migrar_Trabajo_Practico completed successfully.';        ---> Representa un trabajo practico de un alumno para un curso determinado
     
     EXEC LOS_LINDOS.Migrar_Examen_Final;
-    PRINT 'Migrar_Examen_Final completed successfully.';
+    PRINT 'Migrar_Examen_Final completed successfully.';        --> Representa un examen final para un curso, pero sin estar asociado a ningún alumno
     
     EXEC LOS_LINDOS.Migrar_Encuesta;
-    PRINT 'Migrar_Encuesta completed successfully.';
-    
+    PRINT 'Migrar_Encuesta completed successfully.';            --> Obtiene todas las encuestas respondidas por un alumno para un curso y la pone en una sola tabla
+        
     EXEC LOS_LINDOS.Migrar_Detalle_Factura;
-    PRINT 'Migrar_Detalle_Factura completed successfully.';
+    PRINT 'Migrar_Detalle_Factura completed successfully.';         --> Obtiene el monto que se le cobró a un alumno por un curso determinado en un mes, conforman el monto total de las facturas
     
     EXEC LOS_LINDOS.Migrar_Pago;
-    PRINT 'Migrar_Pago completed successfully.';
+    PRINT 'Migrar_Pago completed successfully.';                    --> Obtiene todos los pagos y los pone en una sola tabla
     
     EXEC LOS_LINDOS.Migrar_Parcial;
-    PRINT 'Migrar_Parcial completed successfully.';
+    PRINT 'Migrar_Parcial completed successfully.';             --> Representa un parcial que se tomó para un curso pero sin ningún alumno asociado
     
     EXEC LOS_LINDOS.Migrar_Inscripcion_de_final;
-    PRINT 'Migrar_Inscripcion_de_final completed successfully.';
+    PRINT 'Migrar_Inscripcion_de_final completed successfully.';        --> Obtiene todas las inscripciones a finales de los alumnos y las pone en una sola tabla
     
     EXEC LOS_LINDOS.Migrar_Parcial_de_alumno;
-    PRINT 'Migrar_Parcial_de_alumno completed successfully.';
+    PRINT 'Migrar_Parcial_de_alumno completed successfully.';           ---> Representa un parcial hecho por un alumno, habrá una fila por cada uno
     
     EXEC LOS_LINDOS.Migrar_Respuesta;
-    PRINT 'Migrar_Respuesta completed successfully.';
+    PRINT 'Migrar_Respuesta completed successfully.';                   ---> Pone todas las respuestas de un alumno a una pregunta de una encuesta en una sola tabla
     
     EXEC LOS_LINDOS.Migrar_Examen_Final_de_Alumno;
-    PRINT 'Migrar_Examen_Final_de_Alumno completed successfully.';
+    PRINT 'Migrar_Examen_Final_de_Alumno completed successfully.';          --> Representa el desempeño de un alumno en algun final de un curso determinado, podría haberse inscripto pero quizás no se haya presentado, para cada uno de estos casos se genera una fila
 
     COMMIT TRANSACTION;
     PRINT 'All migrations completed successfully. Transaction committed.';
@@ -972,5 +972,4 @@ DROP PROCEDURE IF EXISTS LOS_LINDOS.Migrar_Examen_Final_de_Alumno;
 -- Finalmente eliminar el schema
 DROP SCHEMA IF EXISTS LOS_LINDOS;
 GO
-
 */
