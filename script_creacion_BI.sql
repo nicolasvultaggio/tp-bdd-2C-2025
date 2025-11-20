@@ -2,7 +2,7 @@ USE GD2C2025;
 GO
 -- Dimensiones
 
-CREATE TABLE LOS_LINDOS.BI_DIMENSION_Sede (
+CREATE TABLE LOS_LINDOS.BI_DIMENSION_Sede ( --> Creacion de la tabla de dimensión
     codigo_sede         BIGINT,
     nombre              NVARCHAR(255) NOT NULL,
     localidad           NVARCHAR(255),
@@ -15,7 +15,7 @@ CREATE TABLE LOS_LINDOS.BI_DIMENSION_Sede (
 );
 GO
 
-INSERT INTO LOS_LINDOS.BI_DIMENSION_Sede
+INSERT INTO LOS_LINDOS.BI_DIMENSION_Sede --> Migro el contenido desde el esquema transaccional, obtengo todas las sedes
 SELECT
     s.codigo,
     s.nombre,
@@ -31,7 +31,7 @@ FROM LOS_LINDOS.Sede s
          JOIN LOS_LINDOS.Institucion i ON i.cuit=s.cuit_institucion
 
 
-CREATE TABLE LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno (
+CREATE TABLE LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno ( --> Creacion de la tabla de dimensión
     codigo_rango        BIGINT IDENTITY(1,1),
     descripcion         VARCHAR(20) NOT NULL CHECK (descripcion IN ('<25', '25-35', '35-50', '>50')),
     PRIMARY KEY (codigo_rango)
@@ -39,35 +39,35 @@ CREATE TABLE LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno (
 GO
 
 
-INSERT INTO LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno (descripcion) VALUES ('<25'), ('25-35'), ('35-50'), ('>50');
+INSERT INTO LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno (descripcion) VALUES ('<25'), ('25-35'), ('35-50'), ('>50'); --> Inserto posibles valores
 
 CREATE TABLE LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor (
     codigo_rango        BIGINT IDENTITY(1,1),
-    descripcion         VARCHAR(20) NOT NULL CHECK (descripcion IN ('25-35', '35-50', '>50')),
+    descripcion         VARCHAR(20) NOT NULL CHECK (descripcion IN ('25-35', '35-50', '>50')), --> Creacion de tabla de dimension
     PRIMARY KEY (codigo_rango)
 );
 GO
 
-INSERT INTO LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor (descripcion) VALUES ('25-35'), ('35-50'), ('>50');
+INSERT INTO LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor (descripcion) VALUES ('25-35'), ('35-50'), ('>50'); --> Inserto posibles valores
 
 CREATE TABLE LOS_LINDOS.BI_DIMENSION_Turno (
     codigo_turno        BIGINT,
-    nombre              VARCHAR(255) NOT NULL,
+    nombre              VARCHAR(255) NOT NULL, --> Creo dimensión turno
     PRIMARY KEY (codigo_turno)
 );
 GO
 
-INSERT INTO LOS_LINDOS.BI_DIMENSION_Turno
+INSERT INTO LOS_LINDOS.BI_DIMENSION_Turno --> Inserto los posibles valores desde el esquema transaccional
     SELECT * FROM LOS_LINDOS.Turno;
 
-CREATE TABLE LOS_LINDOS.BI_DIMENSION_Categoria_Curso (
+CREATE TABLE LOS_LINDOS.BI_DIMENSION_Categoria_Curso ( --> Creo dimensión Categoria de curso
     codigo_categoria    BIGINT,
     nombre              VARCHAR(255) NOT NULL,
     PRIMARY KEY (codigo_categoria)
 );
 GO
 
-INSERT INTO LOS_LINDOS.BI_DIMENSION_Categoria_Curso
+INSERT INTO LOS_LINDOS.BI_DIMENSION_Categoria_Curso --> Inserto los posibles valores desde el esquema transaccional
 SELECT DISTINCT
     c.codigo_categoria,
     ca.nombre
@@ -75,14 +75,14 @@ FROM LOS_LINDOS.Curso c
          JOIN LOS_LINDOS.Categoria ca ON c.codigo_categoria=ca.codigo
 
 
-CREATE TABLE LOS_LINDOS.BI_DIMENSION_Medio_Pago (
+CREATE TABLE LOS_LINDOS.BI_DIMENSION_Medio_Pago ( --> Genero tabla de dimensión para los medios de pago
     codigo_medio_pago   BIGINT,
     descripcion         NVARCHAR(50) NOT NULL,
     PRIMARY KEY (codigo_medio_pago)
 );
 GO
 
-INSERT INTO LOS_LINDOS.BI_DIMENSION_Medio_Pago
+INSERT INTO LOS_LINDOS.BI_DIMENSION_Medio_Pago --> Inserto los medios de pago desde el esquema transaccional
     SELECT * FROM LOS_LINDOS.Medio_Pago
 
 CREATE TABLE LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion (
@@ -90,7 +90,7 @@ CREATE TABLE LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion (
      descripcion         VARCHAR(20) NOT NULL CHECK (descripcion IN ('Satisfechos', 'Neutrales', 'Insatisfechos')),
      nota_minima         BIGINT,
      nota_maxima         BIGINT
-     PRIMARY KEY (codigo_bloque)
+     PRIMARY KEY (codigo_bloque) ---> Genero tabla de dimensión para los bloques de satisfacción
 );
 GO
 
@@ -98,7 +98,7 @@ GO
 INSERT INTO LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion (descripcion,nota_minima,nota_maxima) VALUES
 ('Satisfechos', 7, 10),
 ('Neutrales', 5, 6),
-('Insatisfechos', 0, 4);
+('Insatisfechos', 0, 4); --> Inserto justamente los bloques de satisfacción
 
 
 --Tablas de hechos
@@ -117,7 +117,7 @@ CREATE TABLE LOS_LINDOS.BI_FACT_Inscripciones_Por_Categoria_Turno (
     codigo_turno             BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Turno(codigo_turno),
     codigo_categoria         BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria),
     cantidad_inscripciones   INT NOT NULL DEFAULT 0,
-    PRIMARY KEY (anio, codigo_sede, codigo_turno, codigo_categoria)
+    PRIMARY KEY (anio, codigo_sede, codigo_turno, codigo_categoria)  ---> Creo tabla de hechos para la vista 1
 );
 GO
 
@@ -130,7 +130,7 @@ SELECT
     COUNT (*) AS cant_inscripciones
     FROM LOS_LINDOS.Inscripcion_Curso ic
         JOIN LOS_LINDOS.Curso c ON c.codigo=ic.curso_codigo
-    GROUP BY YEAR(ic.fecha), c.codigo_sede, c.codigo_categoria, c.codigo_turno
+    GROUP BY YEAR(ic.fecha), c.codigo_sede, c.codigo_categoria, c.codigo_turno --> Migro contenido para la cantidad de inscripciones por año, sede, turno y categoría de curso
 GO
 
 /*
@@ -164,7 +164,7 @@ GO
 
 */
 -- Poner explicación en hoja de justificaciones
-CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Inscripciones_Por_Categoria_Turno_TOP3
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Inscripciones_Por_Categoria_Turno_TOP3 --> Genero la vista del top 3, debe buscar las filas con más inscripciones de la tabla de hechos agrupando correctamente 
 AS
 WITH RankedCombinations AS (
     SELECT 
@@ -204,7 +204,7 @@ CREATE TABLE LOS_LINDOS.BI_FACT_Rechazos_Inscripciones (
     mes                      INT NOT NULL CHECK (mes BETWEEN 1 AND 12),
     codigo_sede              BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Sede(codigo_sede),
     cantidad_inscripciones_rechazadas      INT NOT NULL DEFAULT  0,
-    cantidad_inscripciones_total           INT NOT NULL DEFAULT 0,
+    cantidad_inscripciones_total           INT NOT NULL DEFAULT 0,  --> Creo tabla para la vista 2
     PRIMARY KEY (anio, mes, codigo_sede)
 );
 GO
@@ -218,12 +218,12 @@ SELECT
     COUNT(*)
 FROM LOS_LINDOS.Inscripcion_Curso i
     JOIN LOS_LINDOS.Curso c ON c.codigo=i.curso_codigo
-    JOIN LOS_LINDOS.Estado_de_Inscripción ei ON ei.numero_inscripcion_curso=i.numero
+    JOIN LOS_LINDOS.Estado_de_Inscripción ei ON ei.numero_inscripcion_curso=i.numero  --> Migro valores desde el esquema transaccional a la tabla de hechos
     JOIN LOS_LINDOS.Estado e ON e.codigo_estado=ei.codigo_estado
 GROUP BY YEAR(i.fecha), MONTH(i.fecha), c.codigo_sede;
 GO
 
-CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Rechazos_Inscripciones AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Rechazos_Inscripciones AS  --> La vista además se joinea con ls tablas de dimensiones
     SELECT
         f.anio 'Año',
         f.mes 'Mes',
@@ -246,12 +246,12 @@ CREATE TABLE LOS_LINDOS.BI_FACT_Desempenio_Cursada (
     anio                     INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)) ,
     codigo_sede              BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Sede(codigo_sede),
     cantidad_aprobados       INT NOT NULL DEFAULT 0,
-    cantidad_cursadas        INT NOT NULL DEFAULT 0,
+    cantidad_cursadas        INT NOT NULL DEFAULT 0,  --> Creo tabla de hechos para la consulta 3
     PRIMARY KEY (anio, codigo_sede)
 );
 GO
 
-INSERT INTO LOS_LINDOS.BI_FACT_Desempenio_Cursada (anio, codigo_sede, cantidad_aprobados, cantidad_cursadas)
+INSERT INTO LOS_LINDOS.BI_FACT_Desempenio_Cursada (anio, codigo_sede, cantidad_aprobados, cantidad_cursadas) --> Migro información necesaria para la tabla de hechos 3
 SELECT DISTINCT
     YEAR(c.fecha_inicio),
     c.codigo_sede,
@@ -266,7 +266,7 @@ SELECT DISTINCT
 FROM LOS_LINDOS.Curso c group by YEAR(c.fecha_inicio), c.codigo_sede
 GO
 
-CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Desempenio_Cursada AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Desempenio_Cursada AS --> Genero una vista apropiada para la lectura de la tabla de hechos 3
     SELECT
         dc.anio 'Año',
         s.nombre 'Sede',
@@ -288,13 +288,13 @@ y la aprobacion del final segun la categoria de los cursos, por anio.
 
 CREATE TABLE LOS_LINDOS.BI_FACT_Tiempo_Promedio_Finalizacion (
     anio                     INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
-    codigo_categoria         BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria),
+    codigo_categoria         BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria), --> Creo tabla de hechos para el requisito 4
     tiempo_promedio_dias     DECIMAL(10,2) NULL,
     PRIMARY KEY (anio, codigo_categoria)
 );
 GO
 
-INSERT INTO LOS_LINDOS.BI_FACT_Tiempo_Promedio_Finalizacion (anio,codigo_categoria, tiempo_promedio_dias)
+INSERT INTO LOS_LINDOS.BI_FACT_Tiempo_Promedio_Finalizacion (anio,codigo_categoria, tiempo_promedio_dias) --> Inserto valores necesarios desde el esquema transaccional
 SELECT
     YEAR(c.fecha_inicio) AS anio,
     c.codigo_categoria,
@@ -305,7 +305,7 @@ JOIN LOS_LINDOS.Examen_Final_de_Alumno fa ON fa.codigo_final=f.codigo WHERE fa.n
 GROUP BY YEAR(c.fecha_inicio), c.codigo_categoria
 GO
 
-CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Tiempo_Promedio_Finalizacion AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Tiempo_Promedio_Finalizacion AS --> Creo vista para joinear la tabla de hechos con la respectiva tabla de dimensiones
     SELECT
         anio 'Año',
         c.nombre 'Categoría de curso',
@@ -323,13 +323,13 @@ CREATE TABLE LOS_LINDOS.BI_FACT_Nota_Promedio_Finales (
     anio                     INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
     cuatrimestre             INT NOT NULL CHECK (cuatrimestre IN (1,2)),
     codigo_categoria         BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria),
-    codigo_rango_alumno      BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno(codigo_rango),
+    codigo_rango_alumno      BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno(codigo_rango),-->Creo tabla de hechos para el requisito 5
     promedio_nota            DECIMAL(5,2) NULL,
     PRIMARY KEY (anio, cuatrimestre, codigo_categoria, codigo_rango_alumno)
 );
 GO
 
-INSERT INTO LOS_LINDOS.BI_FACT_Nota_Promedio_Finales (anio,cuatrimestre, codigo_categoria, codigo_rango_alumno, promedio_nota)
+INSERT INTO LOS_LINDOS.BI_FACT_Nota_Promedio_Finales (anio,cuatrimestre, codigo_categoria, codigo_rango_alumno, promedio_nota)--> Inserto el promedio de finales por cada año, semestre, categoria y rango etario de alumno
 SELECT
     YEAR(f.fecha) AS anio,
     CASE WHEN MONTH(f.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END,
@@ -356,7 +356,7 @@ GROUP BY
     r.codigo_rango
 GO
 
-CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Nota_Promedio_Finales AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Nota_Promedio_Finales AS --> Genero vista joineando con las tablas de dimensiones para obtener información sobre ellas
     SELECT 
         pf.anio 'Año',
         pf.cuatrimestre 'Cuatrimestre',
@@ -392,11 +392,11 @@ SELECT
 FROM LOS_LINDOS.Examen_Final_de_Alumno fa
 JOIN LOS_LINDOS.Examen_Final f ON f.codigo=fa.codigo_final
 JOIN LOS_LINDOS.Curso c ON c.codigo=f.codigo_curso
-GROUP BY YEAR(f.fecha), CASE WHEN MONTH(f.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END, c.codigo_sede;
+GROUP BY YEAR(f.fecha), CASE WHEN MONTH(f.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END, c.codigo_sede; --> Ingresa por año, semestre y sede, la cantidad de finales ausentes y la cantidad total de finales
 
 GO
 
-CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Ausentismo_Finales AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Ausentismo_Finales AS --> Obtiene las tasas necesarias a partir de la tablas de hechos
 SELECT
     taf.anio 'Año',
     taf.cuatrimestre 'Cuatrimestre',
@@ -415,7 +415,7 @@ GO
 CREATE TABLE LOS_LINDOS.BI_FACT_Pagos_Fuera_Termino (
     anio                            INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
     cuatrimestre                    INT NOT NULL CHECK (cuatrimestre IN (1,2)),
-    medio_de_pago                   BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Medio_Pago(codigo_medio_pago),
+    medio_de_pago                   BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Medio_Pago(codigo_medio_pago), 
     cantidad_pagos_fuera_termino    INT NOT NULL DEFAULT 0,
     cantidad_total_pagos            INT NOT NULL DEFAULT 0,
     PRIMARY KEY (anio, cuatrimestre,medio_de_pago)
@@ -431,7 +431,7 @@ SELECT
     COUNT(*)
 FROM LOS_LINDOS.Pago p
         JOIN LOS_LINDOS.Factura f ON f.numero= p.numero_factura
-GROUP BY YEAR(p.fecha), CASE WHEN MONTH(p.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END, p.codigo_medio_pago
+GROUP BY YEAR(p.fecha), CASE WHEN MONTH(p.fecha) BETWEEN 1 AND 6 THEN 1 ELSE 2 END, p.codigo_medio_pago --> Inserta cantidad de pagos fuera de termino y cantidad de pagos totales para ese medio de pago, año y semestre
 ORDER BY YEAR(p.fecha), cuatrimestre, p.codigo_medio_pago;
 
 GO
@@ -465,7 +465,7 @@ CREATE TABLE LOS_LINDOS.BI_FACT_Morosidad_Mensual (
 );
 GO
 
-INSERT INTO LOS_LINDOS.BI_FACT_Morosidad_Mensual (anio, mes, monto_adeudado, facturacion_esperada)
+INSERT INTO LOS_LINDOS.BI_FACT_Morosidad_Mensual (anio, mes, monto_adeudado, facturacion_esperada) --> Inserta montos adeudados y la facturacion esperada por año y mes
 SELECT
     YEAR(f.fecha_emision),
     MONTH(f.fecha_emision),
@@ -479,7 +479,7 @@ ORDER BY YEAR(f.fecha_emision), MONTH(f.fecha_emision);
 
 GO
 
-CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Morosidad_Mensual AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Morosidad_Mensual AS --> Realiza la consulta a la tabla de hechos
     SELECT
         anio 'Año',
         mes 'Mes',
@@ -502,7 +502,7 @@ CREATE TABLE LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria (
 GO
 
 
-INSERT INTO LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria
+INSERT INTO LOS_LINDOS.BI_FACT_Ingresos_Por_Categoria --> Obtiene los ingresos por año, sede, categoría
 SELECT
     YEAR(c.fecha_inicio),
     c.codigo_sede,
@@ -533,7 +533,7 @@ WHERE (
 GO
 */
 
-CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Ingresos_Por_Categoria
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Ingresos_Por_Categoria --> Vista que obtiene el top 3 de ingresos por año, sede, categoría 
 AS
 WITH RankedCategorias AS (
     SELECT 
@@ -607,7 +607,7 @@ Neutrales: Notas entre 5 y 6
 Insatisfechos: Notas entre 1 y 4 
 */
 
-CREATE TABLE LOS_LINDOS.BI_FACT_Indice_Satisfaccion (
+CREATE TABLE LOS_LINDOS.BI_FACT_Indice_Satisfaccion ( --> Creación de tabla de hechos necesaria
     anio                                    INT NOT NULL CHECK (anio in (2019,2020,2021,2022,2023,2024,2025)),
     codigo_sede                             BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Sede(codigo_sede),
     codigo_rango_profesor                   BIGINT NOT NULL FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor(codigo_rango),
@@ -618,7 +618,7 @@ CREATE TABLE LOS_LINDOS.BI_FACT_Indice_Satisfaccion (
 GO
 
 -- solucion 1
-INSERT INTO LOS_LINDOS.BI_FACT_Indice_Satisfaccion (anio,codigo_sede,codigo_rango_profesor,codigo_bloque,porcentaje)
+INSERT INTO LOS_LINDOS.BI_FACT_Indice_Satisfaccion (anio,codigo_sede,codigo_rango_profesor,codigo_bloque,porcentaje) --> Pone el porcentaje para ese bloque de satisfaccion para ese año, sede y rango etario de profesor
 SELECT
     YEAR(e.fecha_registro),
     c.codigo_sede,
@@ -652,7 +652,7 @@ ORDER BY YEAR(e.fecha_registro), c.codigo_sede, re.codigo_rango, bs.codigo_bloqu
 
 GO
 
-CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Indice_de_satisfaccion AS
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_Indice_de_satisfaccion AS --> Vista joinea las filas de los bloques necesarios de la tabla de hechos y obtiene el indice buscado
     SELECT
     isa.anio 'Año',
     s.nombre 'Sede',
