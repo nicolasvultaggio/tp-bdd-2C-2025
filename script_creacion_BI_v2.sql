@@ -438,7 +438,7 @@ SELECT c.codigo,ca.legajo_alumno, c.fecha_inicio, ef.fecha FROM LOS_LINDOS.Curso
 
 /*
 3. Comparación de desempeño de cursada por sede:. Porcentaje de aprobación de cursada por sede, por año. Se considera aprobada la cursada de un alumno cuando tiene nota mayor o igual a 4 en todos los módulos y el TP. 
-*/
+*/ 
 
 CREATE OR ALTER VIEW LOS_LINDOS.VISTA_PORCENTAJE_APROBACION_Y_DESAPROBACION
 AS
@@ -472,9 +472,9 @@ SELECT
 FROM LOS_LINDOS.BI_FACT_CURSADAS f
     JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t     ON f.tiempo = t.ID
     JOIN LOS_LINDOS.BI_DIMENSION_Sede s       ON f.sede = s.codigo_sede
-
 GROUP BY 
     t.ANIO,
+    s.codigo_sede,
     s.nombre,
     s.provincia,
     s.localidad
