@@ -245,7 +245,7 @@ mayor cantidad de inscriptos por año por sede.
 */
 GO
 
-CREATE OR ALTER VIEW LOS_LINDOS.VW_Top3_Categoria_Turno_Por_Anio_Sede
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_TOP3_CATEGORIA_CURSO
 AS
 WITH RankedDuplas AS (
     SELECT 
@@ -298,7 +298,7 @@ GO
 mes por sede (sobre el total de inscripciones). 
 */
 
-CREATE OR ALTER VIEW LOS_LINDOS.VW_Tasa_Rechazo_Inscripciones_Por_Mes_Sede
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_TASA_RECHAZO
 AS
 SELECT 
     t.COMPLETO        AS 'Período completo', 
@@ -308,10 +308,20 @@ SELECT
     SUM(f.cantidad_inscripciones)          AS 'Total de inscripciones',
     SUM(f.inscripciones_rechazadas)        AS 'Inscripciones rechazadas',
     SUM(f.inscripciones_aceptadas)         AS 'Inscripciones confirmadas',
-    '%'+ CAST (( ROUND((100.00 * SUM(f.inscripciones_rechazadas)),2) / NULLIF(SUM(f.cantidad_inscripciones), 0)  ) AS NVARCHAR) 'Porcentaje de rechazo',
-    '%'+ CAST (( ROUND((100.00 * SUM(f.inscripciones_aceptadas)),2) / NULLIF(SUM(f.cantidad_inscripciones), 0)  ) AS NVARCHAR) 'Porcentaje de confirmación'
-    --'%'+ CAST ((ROUND(100.00 * SUM(f.inscripciones_rechazadas) / NULLIF(SUM(f.cantidad_inscripciones),2), 0)) AS NVARCHAR) 'Porcentaje de rechazo',
-    --'%'+ CAST ((ROUND(100.00 * SUM(f.inscripciones_aceptadas) / NULLIF(SUM(f.cantidad_inscripciones),2), 0)) AS NVARCHAR) 'Porcentaje de confirmación'
+    CONCAT(
+        FORMAT(
+            (100.00 * SUM(f.inscripciones_rechazadas)) / NULLIF(SUM(f.cantidad_inscripciones), 0),
+            'N2'
+        ),
+        '%'
+    ) AS 'Porcentaje de rechazo',
+    CONCAT(
+        FORMAT(
+            (100.00 * SUM(f.inscripciones_aceptadas)) / NULLIF(SUM(f.cantidad_inscripciones), 0),
+            'N2'
+        ),
+        '%'
+    ) AS 'Porcentaje de confirmación'
 FROM LOS_LINDOS.BI_FACT_INSCRIPCIONES f
     JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t ON f.tiempo = t.ID
     JOIN LOS_LINDOS.BI_DIMENSION_Sede s  ON f.sede = s.codigo_sede
@@ -326,8 +336,159 @@ GROUP BY
 GO
 
 
+
+CREATE TABLE LOS_LINDOS.BI_FACT_CURSADAS(
+tiempo                      BIGINT,
+sede                        BIGINT,
+rango_etario_alumno         BIGINT,
+rango_etario_profesor       BIGINT,
+turno                       BIGINT,
+categoria_curso             BIGINT,
+cantidad_aprobados          INT,
+cantidad_desaprobados       INT,
+cantidad_cursadas           INT,
+promedio_finalizacion_dias  FLOAT
+PRIMARY KEY(tiempo,sede, rango_etario_alumno, rango_etario_profesor,turno,categoria_curso)
+);
+
+GO
+
+INSERT INTO LOS_LINDOS.BI_FACT_CURSADAS
+SELECT 
+    t.ID,
+    c.codigo_sede,
+    rea.codigo_rango,
+    rep.codigo_rango,
+    c.codigo_turno,
+    c.codigo_categoria,
+    (
+    SELECT COUNT(*) FROM LOS_LINDOS.Curso_x_Alumno ca 
+            JOIN LOS_LINDOS.Curso cc ON cc.codigo = ca.codigo_curso 
+            JOIN LOS_LINDOS.Alumno aa ON aa.legajo = ca.legajo_alumno
+            JOIN LOS_LINDOS.Profesor pp ON pp.codigo = cc.codigo_profesor
+            WHERE YEAR(cc.fecha_inicio) = t.ANIO AND MONTH(cc.fecha_inicio) = t.MES 
+              AND cc.codigo_sede=c.codigo_sede
+              AND DATEDIFF(YEAR, aa.fecha_nacimiento, cc.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima --> SUBQUERY OBTIENE LA CANTIDAD DE CURSADAS APROBADAS EN ESE MES, AÑO, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORIA DE CURSO
+              AND DATEDIFF(YEAR, p.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
+              AND cc.codigo_categoria = c.codigo_categoria
+              AND cc.codigo_turno = c.codigo_turno
+              AND (SELECT tp.nota FROM LOS_LINDOS.Trabajo_Practico tp WHERE tp.codigo_curso = ca.codigo_curso and tp.legajo_alumno =ca.legajo_alumno) >= 4
+              AND (SELECT COUNT(*) FROM LOS_LINDOS.Parcial par WHERE par.codigo_curso = cc.codigo) = (SELECT COUNT(*) FROM LOS_LINDOS.Parcial_de_alumno paralu JOIN LOS_LINDOS.Parcial par on par.codigo=paralu.codigo_parcial WHERE par.codigo_curso = ca.codigo_curso AND ca.legajo_alumno = paralu.legajo_alumno AND paralu.nota >=4 )
+     --                    CANTIDAD DE PARCIALES DE ESE CURSO                                      =                          CANTIDAD DE PARCIALES DE APROBADOS DE ESE ALUMNO PARA ESE CURSO
+     ) AS cantidad_aprobados,
+    (
+    SELECT COUNT(*) FROM LOS_LINDOS.Curso_x_Alumno ca 
+            JOIN LOS_LINDOS.Curso cc ON cc.codigo = ca.codigo_curso 
+            JOIN LOS_LINDOS.Alumno aa ON aa.legajo = ca.legajo_alumno
+            JOIN LOS_LINDOS.Profesor pp ON pp.codigo = cc.codigo_profesor
+            WHERE YEAR(cc.fecha_inicio) = t.ANIO AND MONTH(cc.fecha_inicio) = t.MES 
+              AND cc.codigo_sede=c.codigo_sede
+              AND DATEDIFF(YEAR, aa.fecha_nacimiento, cc.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima  --> SUBQUERY OBTIENE LA CANTIDAD DE CURSADAS DESAPROBADAS EN ESE MES, AÑO, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORIA DE CURSO, SE PODRÍA HABER OBTENIDO RESTANDO DEL TOTAL LA CANTIDAD APROBADA, PERO DE ESTA MANERA VEMOS QUE EL PROCEDIMIENTO ES CORRECTO AL %100, YA QUE DE TODAS FORMAS APROBADOS + DESAPROBADOS = TOTAL
+              AND DATEDIFF(YEAR, p.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
+              AND cc.codigo_categoria = c.codigo_categoria
+              AND cc.codigo_turno = c.codigo_turno
+              AND (
+                        (SELECT tp.nota FROM LOS_LINDOS.Trabajo_Practico tp WHERE tp.codigo_curso = ca.codigo_curso and tp.legajo_alumno =ca.legajo_alumno) < 4
+                            OR 
+                        (SELECT COUNT(*) FROM LOS_LINDOS.Parcial par WHERE par.codigo_curso = cc.codigo) > (SELECT COUNT(*) FROM LOS_LINDOS.Parcial_de_alumno paralu JOIN LOS_LINDOS.Parcial par on par.codigo=paralu.codigo_parcial WHERE par.codigo_curso = ca.codigo_curso AND ca.legajo_alumno = paralu.legajo_alumno AND paralu.nota >=4 )
+                  )
+      --                    CANTIDAD DE PARCIALES DE ESE CURSO                                           >                     CANTIDAD DE PARCIALES APROBADOS DE ESE ALUMNO PARA ESE CURSO
+     ) AS cantidad_desaprobados,
+    (
+    SELECT COUNT(*) FROM LOS_LINDOS.Curso_x_Alumno ca 
+            JOIN LOS_LINDOS.Curso cc ON cc.codigo = ca.codigo_curso 
+            JOIN LOS_LINDOS.Alumno aa ON aa.legajo = ca.legajo_alumno
+            JOIN LOS_LINDOS.Profesor pp ON pp.codigo = cc.codigo_profesor
+            WHERE YEAR(cc.fecha_inicio) = t.ANIO AND MONTH(cc.fecha_inicio) = t.MES 
+              AND cc.codigo_sede=c.codigo_sede
+              AND DATEDIFF(YEAR, aa.fecha_nacimiento, cc.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima   --> SUBQUERY OBTIENE LA CANTIDAD DE CURSADAS EN ESE MES, AÑO, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORIA DE CURSO
+              AND DATEDIFF(YEAR, p.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
+              AND cc.codigo_categoria = c.codigo_categoria
+              AND cc.codigo_turno = c.codigo_turno
+     ) AS cantidad_cursadas,
+     AVG(DATEDIFF (DAY,c.fecha_inicio,ef.fecha)) AS tiempo_promedio_de_finalizacion_en_dias   --> OBTIENE EL PROMEDIO DE FINALIZACION DE CURSADAS EN ESE MES, AÑO, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORÍA DE PROFESOR
+    FROM LOS_LINDOS.Curso c
+         JOIN LOS_LINDOS.Curso_x_Alumno ca on ca.codigo_curso =c.codigo
+         JOIN LOS_LINDOS.Alumno a on a.legajo = ca.legajo_alumno
+         JOIN LOS_LINDOS.Profesor p on p.codigo = c.codigo_profesor
+         JOIN LOS_LINDOS.Examen_Final ef on ef.codigo_curso = c.codigo
+         JOIN LOS_LINDOS.Examen_Final_de_Alumno efa on efa.codigo_final = ef.codigo AND efa.legajo_alumno = a.legajo
+         JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t on YEAR(c.fecha_inicio) = t.ANIO AND MONTH(c.fecha_inicio) = t.MES
+         JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno rea on  DATEDIFF(YEAR, a.fecha_nacimiento, c.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima
+         JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rep on DATEDIFF(YEAR, p.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
+         GROUP BY t.id,t.anio,t.mes,c.codigo_sede,rea.codigo_rango,rea.edad_minima,rea.edad_maxima,rep.codigo_rango,rep.edad_minima,rep.edad_maxima,c.codigo_turno,c.fecha_inicio,c.codigo_categoria,p.fecha_nacimiento --> la mitad de estos group by estan nada más par que no rompa el codigo, en realidad no agrupan nada, es simplemente para trabajar con la informacion que proporcionan en las subqueries
+
+GO
+
+
+/*
+SELECT DATEDIFF(DAY,c.fecha_inicio,ef.fecha) FROM LOS_LINDOS.Curso_x_Alumno ca 
+         JOIN LOS_LINDOS.Curso c on c.codigo=ca.codigo_curso
+         JOIN LOS_LINDOS.Examen_Final ef on ef.codigo_curso = c.codigo
+         JOIN LOS_LINDOS.Examen_Final_de_Alumno efa on efa.codigo_final = ef.codigo AND efa.legajo_alumno = ca.legajo_alumno and efa.nota>=4   -->proba esta consulta para ver el tiempo de finalizacion de cada cursada
+
+SELECT c.codigo,ca.legajo_alumno, c.fecha_inicio, ef.fecha FROM LOS_LINDOS.Curso_x_Alumno ca 
+         JOIN LOS_LINDOS.Curso c on c.codigo=ca.codigo_curso
+         JOIN LOS_LINDOS.Examen_Final ef on ef.codigo_curso = c.codigo
+         JOIN LOS_LINDOS.Examen_Final_de_Alumno efa on efa.codigo_final = ef.codigo AND efa.legajo_alumno = ca.legajo_alumno and efa.nota>=4   -->proba esta consulta para ver el tiempo de finalizacion de cada cursada
+
+ Hay cursadas que duran 200 días, otras que duran poco más de dos meses, es muy variante
+*/
+
+
+/*
+3. Comparación de desempeño de cursada por sede:. Porcentaje de aprobación de cursada por sede, por año. Se considera aprobada la cursada de un alumno cuando tiene nota mayor o igual a 4 en todos los módulos y el TP. 
+*/
+
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_PORCENTAJE_APROBACION_Y_DESAPROBACION
+AS
+SELECT 
+    t.ANIO                                          AS 'Año',
+    s.nombre                                        AS 'Sede',
+    s.provincia                                     AS 'Provincia',
+    s.localidad                                     AS 'Localidad',
+    SUM(f.cantidad_cursadas)                        AS 'Total de cursadas',
+    SUM(f.cantidad_aprobados)                       AS 'Cursadas aprobadas',
+    SUM(f.cantidad_desaprobados)                    AS 'Cursadas desaprobadas',
+
+    -- Porcentaje de aprobación con 2 decimales
+    CONCAT(
+        FORMAT(
+            100.0 * SUM(f.cantidad_aprobados) / NULLIF(SUM(f.cantidad_cursadas), 0),
+            'N2'
+        ),
+        '%'
+    ) AS 'Porcentaje aprobación',
+
+    -- Complemento para que siempre sume 100%
+    CONCAT(
+        FORMAT(
+            100.0 * SUM(f.cantidad_desaprobados) / NULLIF(SUM(f.cantidad_cursadas), 0),
+            'N2'
+        ),
+        '%'
+    ) AS 'Porcentaje Desaprobación'
+
+FROM LOS_LINDOS.BI_FACT_CURSADAS f
+    JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t     ON f.tiempo = t.ID
+    JOIN LOS_LINDOS.BI_DIMENSION_Sede s       ON f.sede = s.codigo_sede
+
+GROUP BY 
+    t.ANIO,
+    s.nombre,
+    s.provincia,
+    s.localidad
+GO
+
+
+/*
+4. Tiempo promedio de finalización de curso: Tiempo promedio entre el inicio del curso y la aprobación del final según la categoría de los cursos, por año. (Tener en cuenta el año de inicio del curso) 
+*/
+
 /*
 
+DROP VIEW IF EXISTS LOS_LINDOS.VISTA_TOP3_CATEGORIA_CURSO;
+DROP VIEW IF EXISTS LOS_LINDOS.VISTA_TASA_RECHAZO;
 DROP TABLE IF EXISTS LOS_LINDOS.BI_FACT_INSCRIPCIONES;
 DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_TIEMPO;
 DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_Sede;
@@ -353,5 +514,6 @@ DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion;
 -- VISTAS
 
 
-SELECT * FROM LOS_LINDOS.VW_Top3_Categoria_Turno_Por_Anio_Sede
-SELECT * FROM LOS_LINDOS.VW_Tasa_Rechazo_Inscripciones_Por_Mes_Sede
+SELECT * FROM LOS_LINDOS.VISTA_TOP3_CATEGORIA_CURSO
+SELECT * FROM LOS_LINDOS.VISTA_TASA_RECHAZO
+SELECT * FROM LOS_LINDOS.VISTA_PORCENTAJE_APROBACION_Y_DESAPROBACION
