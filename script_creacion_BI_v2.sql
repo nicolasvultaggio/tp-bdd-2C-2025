@@ -5,16 +5,16 @@ GO
 
 Dimensiones:
 
-A—O
+Anio
 SEMESTRE
 MES
 SEDE
 RANGO ETARIO DE ALUMNO
 RANGO ETARIO DE PROFESOR
 TURNO
-CATEGORÕA DE CURSOS
+CATEGORIA DE CURSOS
 MEDIO DE PAGO
-BLOQUE DE SATISFACCI”N
+BLOQUE DE SATISFACCION
 
 */
 
@@ -26,7 +26,7 @@ CREATE TABLE LOS_LINDOS.BI_DIMENSION_TIEMPO
     ID               BIGINT IDENTITY(1,1) PRIMARY KEY,
     ANIO             INT NOT NULL,
     SEMESTRE         INT NOT NULL CHECK (SEMESTRE IN (1,2)),   -- 1 o 2
-    MES              INT NOT NULL CHECK ( 1<=MES AND MES<=13),   -- 1 al 12
+    MES              INT NOT NULL CHECK ( 1<=MES AND MES<=12),   -- 1 al 12
     NOMBRE_MES       VARCHAR(50),
     NOMBRE_SEMESTRE  VARCHAR(50),
     COMPLETO         VARCHAR(50),
@@ -78,11 +78,12 @@ GO
 
 -- Sede
 
-CREATE TABLE LOS_LINDOS.BI_DIMENSION_Sede ( --> Creacion de la tabla de dimensiÛn
+CREATE TABLE LOS_LINDOS.BI_DIMENSION_Sede ( --> Creacion de la tabla de dimension
     codigo_sede         BIGINT,
     nombre              NVARCHAR(255) NOT NULL,
     localidad           NVARCHAR(255),
     provincia           NVARCHAR(255),
+    direccion           NVARCHAR(255),
     mail                NVARCHAR(255),
     cuit_institucion    NVARCHAR(255),
     nombre_institucion  NVARCHAR(255),
@@ -97,6 +98,7 @@ SELECT
     s.nombre,
     l.nombre,
     p.nombre,
+    d.nombre,
     s.mail,
     s.cuit_institucion,
     i.nombre,
@@ -104,12 +106,13 @@ SELECT
 FROM LOS_LINDOS.Sede s
             JOIN LOS_LINDOS.Localidad l ON l.codigo=s.codigo_localidad
             JOIN LOS_LINDOS.Provincia p ON p.codigo=s.codigo_provincia
+            JOIN LOS_LINDOS.Direccion d ON d.codigo=s.codigo_direccion
             JOIN LOS_LINDOS.Institucion i ON i.cuit=s.cuit_institucion
 
 
 -- Rango etario de alumno
 
-CREATE TABLE LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno ( --> Creacion de la tabla de dimensiÛn
+CREATE TABLE LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno ( --> Creacion de la tabla de dimension
     codigo_rango        BIGINT IDENTITY(1,1),
     descripcion         VARCHAR(20) NOT NULL CHECK (descripcion IN ('<25', '25-35', '35-50', '>50')),
     edad_minima         INT NULL, --> EDAD MINIMA ADMITIDA
@@ -141,7 +144,7 @@ VALUES ('25-35',25,34), ('35-50',35,50), ('>50',51,150); --> Inserto posibles va
 
 CREATE TABLE LOS_LINDOS.BI_DIMENSION_Turno (
     codigo_turno        BIGINT,
-    nombre              VARCHAR(255) NOT NULL, --> Creo dimensiÛn turno
+    nombre              VARCHAR(255) NOT NULL, --> Creo dimension turno
     PRIMARY KEY (codigo_turno)
 );
 GO
@@ -150,10 +153,10 @@ INSERT INTO LOS_LINDOS.BI_DIMENSION_Turno --> Inserto los posibles valores desde
     SELECT * FROM LOS_LINDOS.Turno;
 
 
--- CategorÌa de curso
+-- Categoroa de curso
 
 
-CREATE TABLE LOS_LINDOS.BI_DIMENSION_Categoria_Curso ( --> Creo dimensiÛn Categoria de curso
+CREATE TABLE LOS_LINDOS.BI_DIMENSION_Categoria_Curso ( --> Creo dimension Categoria de curso
     codigo_categoria    BIGINT,
     nombre              VARCHAR(255) NOT NULL,
     PRIMARY KEY (codigo_categoria)
@@ -171,7 +174,7 @@ FROM LOS_LINDOS.Curso c
 -- Medio de pago
 
 
-CREATE TABLE LOS_LINDOS.BI_DIMENSION_Medio_Pago ( --> Genero tabla de dimensiÛn para los medios de pago
+CREATE TABLE LOS_LINDOS.BI_DIMENSION_Medio_Pago ( --> Genero tabla de dimension para los medios de pago
     codigo_medio_pago   BIGINT,
     descripcion         NVARCHAR(50) NOT NULL,
     PRIMARY KEY (codigo_medio_pago)
@@ -182,14 +185,14 @@ INSERT INTO LOS_LINDOS.BI_DIMENSION_Medio_Pago --> Inserto los medios de pago de
     SELECT * FROM LOS_LINDOS.Medio_Pago
 
 
--- Bloque de satisfacciÛn
+-- Bloque de satisfaccion
 
 CREATE TABLE LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion (
         codigo_bloque       BIGINT IDENTITY(1,1),
         descripcion         VARCHAR(20) NOT NULL CHECK (descripcion IN ('Satisfechos', 'Neutrales', 'Insatisfechos')),
         nota_minima         BIGINT, --> nota minima admitida
         nota_maxima         BIGINT --> nota maxima admitida
-        PRIMARY KEY (codigo_bloque) ---> Genero tabla de dimensiÛn para los bloques de satisfacciÛn
+        PRIMARY KEY (codigo_bloque) ---> Genero tabla de dimension para los bloques de satisfaccion
 );
 GO
 
@@ -197,23 +200,24 @@ GO
 INSERT INTO LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion (descripcion,nota_minima,nota_maxima) VALUES
 ('Satisfechos', 7, 10),
 ('Neutrales', 5, 6),
-('Insatisfechos', 0, 4); --> Inserto justamente los bloques de satisfacciÛn
+('Insatisfechos', 0, 4); --> Inserto justamente los bloques de satisfaccion
 
 
 -- Tablas de hechos
 
 CREATE TABLE LOS_LINDOS.BI_FACT_INSCRIPCIONES(
-tiempo                      BIGINT,
-sede                        BIGINT,
-rango_etario_alumno         BIGINT,
-rango_etario_profesor       BIGINT,
-turno                       BIGINT,
-categoria_curso             BIGINT,
-cantidad_inscripciones      INT,
-inscripciones_rechazadas    INT,
-inscripciones_aceptadas     INT
-PRIMARY KEY(tiempo,sede, rango_etario_alumno, rango_etario_profesor,turno,categoria_curso)
+    tiempo                      BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_TIEMPO(ID),
+    sede                        BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_SEDE(codigo_sede),
+    rango_etario_alumno         BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno(codigo_rango),
+    rango_etario_profesor       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor(codigo_rango),
+    turno                       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Turno(codigo_turno),
+    categoria_curso             BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria),
+    cantidad_inscripciones      INT,
+    inscripciones_rechazadas    INT,
+    inscripciones_aceptadas     INT,
+    PRIMARY KEY(tiempo, sede, rango_etario_alumno, rango_etario_profesor, turno, categoria_curso)
 );
+
 
 INSERT INTO LOS_LINDOS.BI_FACT_INSCRIPCIONES (tiempo,sede, rango_etario_alumno,rango_etario_profesor,turno,categoria_curso,cantidad_inscripciones,inscripciones_rechazadas,inscripciones_aceptadas)
 SELECT 
@@ -233,15 +237,15 @@ SELECT
         JOIN LOS_LINDOS.Profesor p on c.codigo_profesor = p.codigo
         JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno rea on  DATEDIFF(YEAR, a.fecha_nacimiento, c.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima
         JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rep on DATEDIFF(YEAR, p.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
-        JOIN LOS_LINDOS.Estado_de_InscripciÛn ei on ei.numero_inscripcion_curso = ic.numero
+        JOIN LOS_LINDOS.Estado_de_Inscripci√≥n ei on ei.numero_inscripcion_curso = ic.numero
         JOIN LOS_LINDOS.Estado e on e.codigo_estado = ei.codigo_estado
         GROUP BY t.ID,c.codigo_sede,rea.codigo_rango,rep.codigo_rango,c.codigo_turno,c.codigo_categoria;
 
 -- SELECT * FROM LOS_LINDOS.BI_FACT_INSCRIPCIONES WHERE inscripciones_rechazadas + inscripciones_aceptadas = cantidad_inscripciones para chequeo
 
 /*
-1. CategorÌas y turnos m·s solicitados. Las 3 categorÌas de cursos y turnos con 
-mayor cantidad de inscriptos por aÒo por sede. 
+1. Categorias y turnos mis solicitados. Las 3 categorias de cursos y turnos con
+mayor cantidad de inscriptos por anio por sede.
 */
 GO
 
@@ -250,24 +254,25 @@ AS
 WITH RankedDuplas AS (
     SELECT 
         t.ANIO,
-        s.nombre        AS Nombre_Sede,
-        s.provincia     AS Provincia_Sede,
-        s.localidad     AS Localidad_Sede,
-        cat.nombre      AS Categoria_Curso,
-        tur.nombre      AS Turno,
-        SUM(f.cantidad_inscripciones) AS Total_Inscriptos,
+        s.nombre                        AS Nombre_Sede,
+        s.provincia                     AS Provincia_Sede,
+        s.localidad                     AS Localidad_Sede,
+        s.direccion                     AS Direccion_Sede,
+        cat.nombre                      AS Categoria_Curso,
+        tur.nombre                      AS Turno,
+        SUM(f.cantidad_inscripciones)   AS Total_Inscriptos,
         
-        -- Ranking dentro de cada AÒo + Sede
+        -- Ranking dentro de cada Anio + Sede
         ROW_NUMBER() OVER (
             PARTITION BY t.ANIO, f.sede 
             ORDER BY SUM(f.cantidad_inscripciones) DESC
         ) AS Ranking
 
     FROM LOS_LINDOS.BI_FACT_INSCRIPCIONES f
-        JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t          ON f.tiempo = t.ID
-        JOIN LOS_LINDOS.BI_DIMENSION_Sede s           ON f.sede = s.codigo_sede
-        JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso cat ON f.categoria_curso = cat.codigo_categoria
-        JOIN LOS_LINDOS.BI_DIMENSION_Turno tur        ON f.turno = tur.codigo_turno
+        JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t                   ON f.tiempo = t.ID
+        JOIN LOS_LINDOS.BI_DIMENSION_Sede s                     ON f.sede = s.codigo_sede
+        JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso cat        ON f.categoria_curso = cat.codigo_categoria
+        JOIN LOS_LINDOS.BI_DIMENSION_Turno tur                  ON f.turno = tur.codigo_turno
 
     GROUP BY 
         t.ANIO, 
@@ -275,15 +280,17 @@ WITH RankedDuplas AS (
         s.nombre, 
         s.provincia,
         s.localidad,
+        S.direccion,
         cat.nombre, 
         tur.nombre
 )
 SELECT 
-    ANIO 'AÒo',
+    ANIO 'A√±o',
     Nombre_Sede 'Sede',
     Provincia_Sede 'Provincia',
     Localidad_Sede 'Localidad',
-    Categoria_Curso 'CategorÌa de curso',
+    Direccion_Sede 'Direccion',
+    Categoria_Curso 'Categor√≠a de curso',
     Turno 'Turno',
     Total_Inscriptos 'Cantidad de inscriptos',
     Ranking 'Ranking'
@@ -301,7 +308,7 @@ mes por sede (sobre el total de inscripciones).
 CREATE OR ALTER VIEW LOS_LINDOS.VISTA_TASA_RECHAZO
 AS
 SELECT 
-    t.COMPLETO        AS 'PerÌodo completo', 
+    t.COMPLETO        AS 'PerÔøΩodo completo', 
     s.nombre          AS 'Sede',
     s.provincia       AS 'Provincia',
     s.localidad       AS 'Localidad',
@@ -321,7 +328,7 @@ SELECT
             'N2'
         ),
         '%'
-    ) AS 'Porcentaje de confirmaciÛn'
+    ) AS 'Porcentaje de confirmaciÔøΩn'
 FROM LOS_LINDOS.BI_FACT_INSCRIPCIONES f
     JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t ON f.tiempo = t.ID
     JOIN LOS_LINDOS.BI_DIMENSION_Sede s  ON f.sede = s.codigo_sede
@@ -337,18 +344,19 @@ GO
 
 
 
-CREATE TABLE LOS_LINDOS.BI_FACT_CURSADAS(
-tiempo                      BIGINT,
-sede                        BIGINT,
-rango_etario_alumno         BIGINT,
-rango_etario_profesor       BIGINT,
-turno                       BIGINT,
-categoria_curso             BIGINT,
+CREATE TABLE LOS_LINDOS. BI_FACT_CURSADAS(
+tiempo                      BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_TIEMPO(ID),
+sede                        BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_SEDE(codigo_sede),
+rango_etario_alumno         BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno(codigo_rango),
+rango_etario_profesor       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor(codigo_rango),
+turno                       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Turno(codigo_turno),
+categoria_curso             BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria),
 cantidad_aprobados          INT,
 cantidad_desaprobados       INT,
 cantidad_cursadas           INT,
 promedio_finalizacion_dias  FLOAT
 PRIMARY KEY(tiempo,sede, rango_etario_alumno, rango_etario_profesor,turno,categoria_curso)
+
 );
 
 GO
@@ -366,9 +374,9 @@ SELECT
             JOIN LOS_LINDOS.Curso cc ON cc.codigo = ca.codigo_curso 
             JOIN LOS_LINDOS.Alumno aa ON aa.legajo = ca.legajo_alumno
             JOIN LOS_LINDOS.Profesor pp ON pp.codigo = cc.codigo_profesor
-            WHERE YEAR(cc.fecha_inicio) = t.ANIO AND MONTH(cc.fecha_inicio) = t.MES 
+            WHERE YEAR(cc.fecha_inicio) = t.ANIO AND MONTH(cc.fecha_inicio) = t.MES
               AND cc.codigo_sede=c.codigo_sede
-              AND DATEDIFF(YEAR, aa.fecha_nacimiento, cc.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima --> SUBQUERY OBTIENE LA CANTIDAD DE CURSADAS APROBADAS EN ESE MES, A—O, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORIA DE CURSO
+              AND DATEDIFF(YEAR, aa.fecha_nacimiento, cc.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima --> SUBQUERY OBTIENE LA CANTIDAD DE CURSADAS APROBADAS EN ESE MES, AÔøΩO, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORIA DE CURSO
               AND DATEDIFF(YEAR, p.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
               AND cc.codigo_categoria = c.codigo_categoria
               AND cc.codigo_turno = c.codigo_turno
@@ -383,7 +391,7 @@ SELECT
             JOIN LOS_LINDOS.Profesor pp ON pp.codigo = cc.codigo_profesor
             WHERE YEAR(cc.fecha_inicio) = t.ANIO AND MONTH(cc.fecha_inicio) = t.MES 
               AND cc.codigo_sede=c.codigo_sede
-              AND DATEDIFF(YEAR, aa.fecha_nacimiento, cc.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima  --> SUBQUERY OBTIENE LA CANTIDAD DE CURSADAS DESAPROBADAS EN ESE MES, A—O, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORIA DE CURSO, SE PODRÕA HABER OBTENIDO RESTANDO DEL TOTAL LA CANTIDAD APROBADA, PERO DE ESTA MANERA VEMOS QUE EL PROCEDIMIENTO ES CORRECTO AL %100, YA QUE DE TODAS FORMAS APROBADOS + DESAPROBADOS = TOTAL
+              AND DATEDIFF(YEAR, aa.fecha_nacimiento, cc.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima  --> SUBQUERY OBTIENE LA CANTIDAD DE CURSADAS DESAPROBADAS EN ESE MES, ANIO, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORIA DE CURSO, SE PODRIA HABER OBTENIDO RESTANDO DEL TOTAL LA CANTIDAD APROBADA, PERO DE ESTA MANERA VEMOS QUE EL PROCEDIMIENTO ES CORRECTO AL %100, YA QUE DE TODAS FORMAS APROBADOS + DESAPROBADOS = TOTAL
               AND DATEDIFF(YEAR, p.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
               AND cc.codigo_categoria = c.codigo_categoria
               AND cc.codigo_turno = c.codigo_turno
@@ -401,12 +409,12 @@ SELECT
             JOIN LOS_LINDOS.Profesor pp ON pp.codigo = cc.codigo_profesor
             WHERE YEAR(cc.fecha_inicio) = t.ANIO AND MONTH(cc.fecha_inicio) = t.MES 
               AND cc.codigo_sede=c.codigo_sede
-              AND DATEDIFF(YEAR, aa.fecha_nacimiento, cc.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima   --> SUBQUERY OBTIENE LA CANTIDAD DE CURSADAS EN ESE MES, A—O, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORIA DE CURSO
+              AND DATEDIFF(YEAR, aa.fecha_nacimiento, cc.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima   --> SUBQUERY OBTIENE LA CANTIDAD DE CURSADAS EN ESE MES, ANIO, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORIA DE CURSO
               AND DATEDIFF(YEAR, p.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
               AND cc.codigo_categoria = c.codigo_categoria
               AND cc.codigo_turno = c.codigo_turno
      ) AS cantidad_cursadas,
-     AVG(DATEDIFF (DAY,c.fecha_inicio,ef.fecha)) AS tiempo_promedio_de_finalizacion_en_dias   --> OBTIENE EL PROMEDIO DE FINALIZACION DE CURSADAS EN ESE MES, A—O, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORÕA DE PROFESOR
+     AVG(DATEDIFF (DAY,c.fecha_inicio,ef.fecha)) AS tiempo_promedio_de_finalizacion_en_dias   --> OBTIENE EL PROMEDIO DE FINALIZACION DE CURSADAS EN ESE MES, ANIO, RANGO DE PROFESOR, RANGO DE ALUMNO, TURNO Y CATEGORiA DE PROFESOR
     FROM LOS_LINDOS.Curso c
          JOIN LOS_LINDOS.Curso_x_Alumno ca on ca.codigo_curso =c.codigo
          JOIN LOS_LINDOS.Alumno a on a.legajo = ca.legajo_alumno
@@ -416,10 +424,14 @@ SELECT
          JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t on YEAR(c.fecha_inicio) = t.ANIO AND MONTH(c.fecha_inicio) = t.MES
          JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno rea on  DATEDIFF(YEAR, a.fecha_nacimiento, c.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima
          JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rep on DATEDIFF(YEAR, p.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
-         GROUP BY t.id,t.anio,t.mes,c.codigo_sede,rea.codigo_rango,rea.edad_minima,rea.edad_maxima,rep.codigo_rango,rep.edad_minima,rep.edad_maxima,c.codigo_turno,c.fecha_inicio,c.codigo_categoria,p.fecha_nacimiento --> la mitad de estos group by estan nada m·s par que no rompa el codigo, en realidad no agrupan nada, es simplemente para trabajar con la informacion que proporcionan en las subqueries
+         GROUP BY t.id,t.anio,t.mes,c.codigo_sede,rea.codigo_rango,rea.edad_minima,rea.edad_maxima,rep.codigo_rango,rep.edad_minima,rep.edad_maxima,c.codigo_turno,c.fecha_inicio,c.codigo_categoria,p.fecha_nacimiento --> la mitad de estos group by estan nada mas par que no rompa el codigo, en realidad no agrupan nada, es simplemente para trabajar con la informacion que proporcionan en las subqueries
 
 GO
 
+
+SELECT * FROM LOS_LINDOS.BI_FACT_INSCRIPCIONES
+
+SELECT * FROM LOS_LINDOS.BI_DIMENSION_TIEMPO
 
 /*
 SELECT DATEDIFF(DAY,c.fecha_inicio,ef.fecha) FROM LOS_LINDOS.Curso_x_Alumno ca 
@@ -432,18 +444,18 @@ SELECT c.codigo,ca.legajo_alumno, c.fecha_inicio, ef.fecha FROM LOS_LINDOS.Curso
          JOIN LOS_LINDOS.Examen_Final ef on ef.codigo_curso = c.codigo
          JOIN LOS_LINDOS.Examen_Final_de_Alumno efa on efa.codigo_final = ef.codigo AND efa.legajo_alumno = ca.legajo_alumno and efa.nota>=4   -->proba esta consulta para ver el tiempo de finalizacion de cada cursada
 
- Hay cursadas que duran 200 dÌas, otras que duran poco m·s de dos meses, es muy variante
+ Hay cursadas que duran 200 dias, otras que duran poco mas de dos meses, es muy variante
 */
 
 
 /*
-3. ComparaciÛn de desempeÒo de cursada por sede:. Porcentaje de aprobaciÛn de cursada por sede, por aÒo. Se considera aprobada la cursada de un alumno cuando tiene nota mayor o igual a 4 en todos los mÛdulos y el TP. 
+3. Comparacion de desempenio de cursada por sede:. Porcentaje de aprobacion de cursada por sede, por anio. Se considera aprobada la cursada de un alumno cuando tiene nota mayor o igual a 4 en todos los modulos y el TP.
 */ 
-
+GO
 CREATE OR ALTER VIEW LOS_LINDOS.VISTA_PORCENTAJE_APROBACION_Y_DESAPROBACION
 AS
 SELECT 
-    t.ANIO                                          AS 'AÒo',
+    t.ANIO                                          AS 'AÔøΩo',
     s.nombre                                        AS 'Sede',
     s.provincia                                     AS 'Provincia',
     s.localidad                                     AS 'Localidad',
@@ -451,14 +463,14 @@ SELECT
     SUM(f.cantidad_aprobados)                       AS 'Cursadas aprobadas',
     SUM(f.cantidad_desaprobados)                    AS 'Cursadas desaprobadas',
 
-    -- Porcentaje de aprobaciÛn con 2 decimales
+    -- Porcentaje de aprobacion con 2 decimales
     CONCAT(
         FORMAT(
             100.0 * SUM(f.cantidad_aprobados) / NULLIF(SUM(f.cantidad_cursadas), 0),
             'N2'
         ),
         '%'
-    ) AS 'Porcentaje aprobaciÛn',
+    ) AS 'Porcentaje aprobaciÔøΩn',
 
     -- Complemento para que siempre sume 100%
     CONCAT(
@@ -467,7 +479,7 @@ SELECT
             'N2'
         ),
         '%'
-    ) AS 'Porcentaje DesaprobaciÛn'
+    ) AS 'Porcentaje DesaprobaciÔøΩn'
 
 FROM LOS_LINDOS.BI_FACT_CURSADAS f
     JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t     ON f.tiempo = t.ID
@@ -482,14 +494,254 @@ GO
 
 
 /*
-4. Tiempo promedio de finalizaciÛn de curso: Tiempo promedio entre el inicio del curso y la aprobaciÛn del final seg˙n la categorÌa de los cursos, por aÒo. (Tener en cuenta el aÒo de inicio del curso) 
+4. Tiempo promedio de finalizaciÔøΩn de curso: Tiempo promedio entre el inicio del curso y la aprobaciÔøΩn del final segÔøΩn la categorÔøΩa de los cursos, por aÔøΩo. (Tener en cuenta el aÔøΩo de inicio del curso) 
 */
+
+
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_PROMEDIO_FINALIZACION
+AS
+SELECT 
+    t.ANIO                                          AS Anio,
+    cat.nombre                                      AS Categoria_Curso,
+    CAST(AVG(f.promedio_finalizacion_dias)          AS DECIMAL(10,1)) AS Promedio_Dias_Finalizacion
+FROM LOS_LINDOS.BI_FACT_CURSADAS f
+    JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t              ON f.tiempo = t.ID
+    JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso cat   ON f.categoria_curso = cat.codigo_categoria
+GROUP BY 
+    t.ANIO,
+    cat.nombre
+GO
+
+--
+CREATE TABLE LOS_LINDOS.BI_FACT_FINALES(
+tiempo                      BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_TIEMPO(ID),
+sede                        BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_SEDE(codigo_sede),
+rango_etario_alumno         BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno(codigo_rango),
+rango_etario_profesor       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor(codigo_rango),
+turno                       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Turno(codigo_turno),
+categoria_curso             BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria),
+promedio_de_notas           INT,
+cantidad_de_ausentes        INT,
+cantidad_de_inscriptos      INT
+PRIMARY KEY(tiempo,sede,rango_etario_alumno,rango_etario_profesor,turno,categoria_curso)
+)
+GO
+
+INSERT INTO LOS_LINDOS.BI_FACT_FINALES
+SELECT
+    t.ID,
+    c.codigo_sede,
+    rea.codigo_rango,
+    rep.codigo_rango,
+    c.codigo_turno,
+    c.codigo_categoria,
+    AVG(fa.nota),
+    SUM(CASE WHEN fa.presente = 0 THEN 1 ELSE 0 END),
+    COUNT(*)
+FROM LOS_LINDOS.Examen_Final f
+JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t ON t.ANIO=YEAR(f.fecha) AND t.MES=MONTH(f.fecha)
+JOIN LOS_LINDOS.Curso c ON c.codigo=f.codigo_curso
+JOIN LOS_LINDOS.Examen_Final_de_Alumno fa ON fa.codigo_final=f.codigo
+JOIN LOS_LINDOS.Alumno a ON a.legajo=fa.legajo_alumno
+JOIN LOS_LINDOS.Profesor p on p.codigo=fa.codigo_profesor
+JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno rea on DATEDIFF(YEAR, a.fecha_nacimiento, f.fecha) BETWEEN rea.edad_minima AND rea.edad_maxima
+JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rep on DATEDIFF(YEAR, p.fecha_nacimiento, f.fecha) BETWEEN rep.edad_minima AND rep.edad_maxima
+GROUP BY t.ID, c.codigo_sede, rea.codigo_rango, rep.codigo_rango, c.codigo_turno, c.codigo_categoria;
+
+/*
+5. Nota promedio de finales. Promedio de nota de finales seg√∫n el rango etario del
+alumno y la categor√≠a del curso por semestre.
+*/
+GO
+
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_PROMEDIO_NOTAS_FINALES
+AS
+SELECT
+    t.ANIO                                                                                      AS 'A√±o',
+    t.NOMBRE_SEMESTRE                                                                           AS 'Semestre',
+    rea.descripcion                                                                             AS 'Rango etario de alumno',
+    cat.nombre                                                                                  AS 'Categor√≠a de curso',
+    COUNT(*)                                                                                    AS 'Cantidad de inscripciones',
+    COALESCE(CAST(AVG(f.promedio_de_notas) AS NVARCHAR),'Nadie se present√≥' )                   AS 'Nota promedio de final'
+FROM LOS_LINDOS.BI_FACT_FINALES f
+         JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t                  ON f.tiempo = t.ID
+         JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno rea   ON f.rango_etario_alumno = rea.codigo_rango
+         JOIN LOS_LINDOS.BI_DIMENSION_Categoria_Curso cat       ON f.categoria_curso = cat.codigo_categoria
+GROUP BY
+    t.ANIO,
+    t.NOMBRE_SEMESTRE,
+    rea.descripcion,
+    cat.nombre
+
+
+GO
+
+/*
+6. Tasa de ausentismo finales: Porcentaje de ausentes a finales (sobre la cantidad
+de inscriptos) por semestre por sede.
+*/
+
+
+CREATE OR ALTER VIEW LOS_LINDOS.VISTA_TASA_AUSENTISMO_FINALES
+AS
+SELECT
+    t.ANIO                                          AS 'A√±o',
+    t.NOMBRE_SEMESTRE                               AS 'Semestre',
+    s.nombre                                        AS 'Sede',
+    s.provincia                                     AS 'Provincia',
+    s.localidad                                     AS 'Localidad',
+    s.direccion                                     AS 'Direccion',
+    SUM(f.cantidad_de_inscriptos)                   AS 'Total de inscriptos',
+    SUM(f.cantidad_de_ausentes)                     AS 'Total de ausentes',
+    CONCAT(
+            FORMAT(
+                    100.0 * SUM(f.cantidad_de_ausentes) / NULLIF(SUM(f.cantidad_de_inscriptos), 0),
+                    'N2'
+            ),
+            '%'
+    ) AS 'Porcentaje de ausentismo',
+
+    -- Complemento: porcentaje de presentes (siempre suma 100%)
+    CONCAT(
+        FORMAT(
+            100.0 - (100.0 * SUM(f.cantidad_de_ausentes) / NULLIF(SUM(f.cantidad_de_inscriptos), 0)),
+            'N2'
+        ),
+        '%'
+    ) AS 'Porcentaje de presentes'
+
+FROM LOS_LINDOS.BI_FACT_FINALES f
+    JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t ON f.tiempo = t.ID
+    JOIN LOS_LINDOS.BI_DIMENSION_Sede s   ON f.sede = s.codigo_sede
+GROUP BY
+    t.ANIO,
+    t.NOMBRE_SEMESTRE,
+    s.nombre,
+    s.provincia,
+    s.localidad,
+    s.direccion
+HAVING SUM(f.cantidad_de_inscriptos) > 0  -- evitamos divisi√≥n por cero y filas vac√≠as
+
+GO
+
+
+CREATE TABLE LOS_LINDOS.BI_FACT_FACTURACION_Y_PAGOS(
+tiempo                      BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_TIEMPO(ID),
+sede                        BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_SEDE(codigo_sede),
+rango_etario_alumno         BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno(codigo_rango),
+rango_etario_profesor       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor(codigo_rango),
+turno                       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Turno(codigo_turno),
+categoria_curso             BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria),
+medio_de_pago               BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Medio_Pago(codigo_medio_pago),
+cantidad_de_facturas                INT,
+cantidad_de_pagos                   INT,
+cantidad_de_pagos_fuera_de_termino  INT
+PRIMARY KEY(tiempo,sede,rango_etario_alumno,rango_etario_profesor,turno,categoria_curso,medio_de_pago)
+
+)
+
+INSERT INTO LOS_LINDOS.BI_FACT_FACTURACION_Y_PAGOS
+SELECT
+    t.ID,
+    c.codigo_sede,
+    rea.codigo_rango,
+    rep.codigo_rango,
+    c.codigo_categoria,
+    p.codigo_medio_pago
+FROM LOS_LINDOS.Factura f
+         JOIN LOS_LINDOS.Detalle_Factura df ON df.numero_factura = f.numero
+         JOIN LOS_LINDOS.Curso c ON c.codigo = df.codigo_curso
+         JOIN LOS_LINDOS.Alumno a ON a.legajo = f.legajo_alumno
+         JOIN LOS_LINDOS.Profesor prof ON prof.codigo = c.codigo_profesor
+         LEFT JOIN LOS_LINDOS.Pago p ON f.numero = p.numero_factura
+         JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t ON YEAR(f.fecha_emision) = t.ANIO AND MONTH(f.fecha_emision) = t.MES
+    JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno rea on  DATEDIFF(YEAR, a.fecha_nacimiento, c.fecha_inicio) BETWEEN rea.edad_minima AND rea.edad_maxima
+    JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rep on DATEDIFF(YEAR, prof.fecha_nacimiento, c.fecha_inicio) BETWEEN rep.edad_minima AND rep.edad_maxima
+
+
+
+
+CREATE TABLE LOS_LINDOS.BI_FACT_ENCUESTA(
+tiempo                      BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_TIEMPO(ID),
+codigo_sede                 BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_SEDE(codigo_sede),
+rango_etario_alumno         BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno(codigo_rango),
+rango_etario_profesor       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor(codigo_rango),
+turno                       BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Turno(codigo_turno),
+categoria_curso             BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Categoria_Curso(codigo_categoria),
+bloque_satisfaccion         BIGINT FOREIGN KEY REFERENCES LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion(codigo_bloque),
+cantidad                    INT
+PRIMARY KEY (tiempo,codigo_sede,rango_etario_alumno,rango_etario_profesor,turno,categoria_curso,bloque_satisfaccion)
+)
+
+INSERT INTO LOS_LINDOS.BI_FACT_ENCUESTA
+SELECT
+    t.ID,
+    c.codigo_sede,
+    rep.codigo_rango,
+    c.codigo_turno,
+    c.codigo_categoria,
+    bs.codigo_bloque,
+    COUNT(*)
+FROM LOS_LINDOS.Encuesta e
+JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t ON t.ANIO=YEAR(e.fecha_registro) AND t.MES=MONTH(e.fecha_registro)
+JOIN LOS_LINDOS.Curso c ON c.codigo=e.codigo_curso
+JOIN LOS_LINDOS.Profesor p on p.codigo=c.codigo_profesor
+JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rep on DATEDIFF(YEAR, p.fecha_nacimiento, e.fecha_registro) BETWEEN rep.edad_minima AND rep.edad_maxima
+JOIN LOS_LINDOS.Respuesta r ON r.codigo_encuesta=e.codigo
+JOIN LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs on r.respuesta BETWEEN bs.nota_minima AND bs.nota_maxima
+GROUP BY t.ID, c.codigo_sede, rep.codigo_rango, c.codigo_turno, c.codigo_categoria, bs.codigo_bloque;
+
+
+GO
+
+
+CREATE OR ALTER VIEW LOS_LINDOS.INDICE_DE_SATISFACCION AS
+SELECT
+    t.ANIO AS 'Anio',
+    rep.descripcion AS 'Rango Etario de Profesor',
+    s.nombre AS 'Nombre de Sede',
+    ROUND(
+            (
+                (
+                    (SUM(CASE WHEN bs.descripcion = 'Satisfechos' THEN fe.cantidad ELSE 0 END) * 100.0 / SUM(fe.cantidad))
+                    -
+                    (SUM(CASE WHEN bs.descripcion = 'Insatisfechos' THEN fe.cantidad ELSE 0 END) * 100.0 / SUM(fe.cantidad))
+                )+100
+            )/2,2)
+    AS 'Indice de Satisfaccion'
+FROM LOS_LINDOS.BI_FACT_ENCUESTA fe
+JOIN LOS_LINDOS.BI_DIMENSION_TIEMPO t ON t.ID=fe.tiempo
+JOIN LOS_LINDOS.BI_DIMENSION_Rango_Etario_Profesor rep ON rep.codigo_rango=fe.rango_etario_profesor
+JOIN LOS_LINDOS.BI_DIMENSION_Sede s ON s.codigo_sede=fe.codigo_sede
+JOIN LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion bs ON bs.codigo_bloque=fe.bloque_satisfaccion
+GROUP BY t.ANIO, rep.descripcion, s.nombre;
+
+GO
 
 /*
 
 DROP VIEW IF EXISTS LOS_LINDOS.VISTA_TOP3_CATEGORIA_CURSO;
 DROP VIEW IF EXISTS LOS_LINDOS.VISTA_TASA_RECHAZO;
+DROP VIEW IF EXISTS LOS_LINDOS.VISTA_PORCENTAJE_APROBACION_Y_DESAPROBACION;
+DROP VIEW IF EXISTS LOS_LINDOS.VISTA_PROMEDIO_FINALIZACION;
+DROP VIEW IF EXISTS LOS_LINDOS.VISTA_PROMEDIO_NOTAS_FINALES;
+DROP VIEW IF EXISTS LOS_LINDOS.VISTA_TASA_AUSENTISMO_FINALES;
+DROP VIEW IF EXISTS LOS_LINDOS.INDICE_DE_SATISFACCION;
+GO
+
+-- =============================================
+-- TABLAS DE HECHOS (tienen FK hacia dimensiones ‚Üí se borran primero)
+-- =============================================
 DROP TABLE IF EXISTS LOS_LINDOS.BI_FACT_INSCRIPCIONES;
+DROP TABLE IF EXISTS LOS_LINDOS.BI_FACT_CURSADAS;
+DROP TABLE IF EXISTS LOS_LINDOS.BI_FACT_FINALES;
+DROP TABLE IF EXISTS LOS_LINDOS.BI_FACT_FACTURACION_Y_PAGOS;
+DROP TABLE IF EXISTS LOS_LINDOS.BI_FACT_ENCUESTA;
+GO
+
+-- =============================================
+-- TABLAS DE DIMENSIONES (las tablas de hechos ya no las referencian)
+-- =============================================
 DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_TIEMPO;
 DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_Sede;
 DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_Rango_Etario_Alumno;
@@ -498,6 +750,9 @@ DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_Turno;
 DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_Categoria_Curso;
 DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_Medio_Pago;
 DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion;
+GO
+
+PRINT 'Todo el esquema BI de LOS_LINDOS fue eliminado correctamente.';
 
 */
 
@@ -514,6 +769,13 @@ DROP TABLE IF EXISTS LOS_LINDOS.BI_DIMENSION_Bloque_Satisfaccion;
 -- VISTAS
 
 
-SELECT * FROM LOS_LINDOS.VISTA_TOP3_CATEGORIA_CURSO
-SELECT * FROM LOS_LINDOS.VISTA_TASA_RECHAZO
-SELECT * FROM LOS_LINDOS.VISTA_PORCENTAJE_APROBACION_Y_DESAPROBACION
+SELECT * FROM LOS_LINDOS.VISTA_TOP3_CATEGORIA_CURSO; --1
+SELECT * FROM LOS_LINDOS.VISTA_TASA_RECHAZO; --2
+SELECT * FROM LOS_LINDOS.VISTA_PORCENTAJE_APROBACION_Y_DESAPROBACION; --3
+SELECT * FROM LOS_LINDOS.VISTA_PROMEDIO_FINALIZACION; --4
+SELECT * FROM LOS_LINDOS.VISTA_PROMEDIO_NOTAS_FINALES --5
+SELECT * FROM LOS_LINDOS.VISTA_TASA_AUSENTISMO_FINALES --6
+--7
+--8
+--9
+--10
